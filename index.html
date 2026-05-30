@@ -106,12 +106,12 @@
                                 <span class="text-xs font-bold text-gray-500">최종 결제 금액</span>
                                 <span class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div v-if="!hasPurchased(activeProduct.id)" class="grid grid-cols-2 gap-3">
                                 <button @click="addToCart" class="py-4 bg-[#EFE9DC] hover:bg-[#E2D9C8] text-[#5C5245] text-xs font-bold rounded-xl tracking-wider transition">🛒 장바구니 담기</button>
                                 <button @click="proceedToCheckout('direct')" class="py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">💳 즉시 결제하기</button>
                             </div>
-                            <div v-if="hasPurchased(activeProduct.id)" class="mt-2">
-                                <button @click="downloadEbook(activeProduct)" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">📥 전자책 다운로드</button>
+                            <div v-if="hasPurchased(activeProduct.id)">
+                                <button @click="goToEbook(activeProduct)" class="w-full py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">📖 전자책 다운받기</button>
                             </div>
                         </div>
                     </div>
@@ -191,7 +191,18 @@
                     </div>
                     <span class="text-[10px] text-gray-400">OFFICIAL</span>
                 </div>
-                <p class="text-gray-500 leading-relaxed whitespace-pre-line">{{ n.content }}</p>
+                <!-- 구매 권한 있으면 내용 표시, 없으면 잠금 -->
+                <div v-if="hasCategoryAccess(n.category)">
+                    <p class="text-gray-500 leading-relaxed whitespace-pre-line">{{ n.content }}</p>
+                </div>
+                <div v-else class="relative">
+                    <p class="text-gray-300 leading-relaxed select-none blur-sm">{{ n.content }}</p>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                        <span class="text-lg">🔒</span>
+                        <p class="text-[11px] font-bold text-gray-500">해당 카테고리 상품 구매 후 열람 가능합니다</p>
+                        <button @click="navigateTo('shop')" class="px-3 py-1.5 bg-[#5C5245] text-white text-[10px] font-bold rounded-lg hover:bg-black transition">상품 보러가기</button>
+                    </div>
+                </div>
             </div>
             <div v-if="filteredNotices.length === 0" class="text-center py-12 text-gray-400 text-xs">선택된 카테고리에 공지사항이 없습니다.</div>
         </div>
@@ -599,6 +610,29 @@
                 a.click();
             };
 
+            // 전자책 다운받기 버튼 → 파일 다운로드 후 해당 카테고리 공지로 이동
+            const goToEbook = (product) => {
+                // ebook_url 있으면 다운로드
+                if (product.ebook_url) {
+                    const a = document.createElement('a');
+                    a.href = product.ebook_url;
+                    a.download = product.name;
+                    a.target = '_blank';
+                    a.click();
+                }
+                // 해당 카테고리 공지사항으로 이동
+                selectedNoticeCategory.value = product.category;
+                navigateTo('notice');
+            };
+
+            // 구매한 상품의 카테고리에 접근 권한이 있는지 확인
+            const hasCategoryAccess = (category) => {
+                return myPurchases.value.some(p => {
+                    const product = products.value.find(prod => prod.id === p.product_id);
+                    return product && product.category === category;
+                });
+            };
+
             // ── 결제 ──────────────────────────────────────────────
             const proceedToCheckout = async (type) => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
@@ -826,7 +860,7 @@
                 cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
                 myPurchases,
                 visibleCategories, filteredProducts, filteredNotices,
-                navigateTo, triggerSearch, goToDetailView, formatPrice,
+                navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess,
                 openLoginModal, closeLoginModal, handleRegister, handleLogin, logoutUser, kickUser,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
                 proceedToCheckout, requestTossPayment,
