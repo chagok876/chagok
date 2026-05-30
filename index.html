@@ -426,7 +426,7 @@
         return new Promise((resolve, reject) => {
             if (window.TossPayments) { resolve(); return; }
             const s = document.createElement('script');
-            s.src = 'https://js.tosspayments.com/v2';
+            s.src = 'https://js.tosspayments.com/v2/payment-widget';
             s.onload = () => resolve();
             s.onerror = () => reject(new Error('토스 SDK 로드 실패'));
             document.head.appendChild(s);
