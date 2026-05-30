@@ -297,11 +297,6 @@
                         <label class="block font-bold text-[11px] text-amber-800">■ 상세페이지 하단 롤 스트림 이미지 (다중)</label>
                         <input type="file" @change="e => uploadFileStream(e, 'product_detail')" accept="image/*" multiple class="w-full text-[10px] pt-1">
                     </div>
-                    <div class="space-y-1 bg-blue-50 p-3 rounded-xl border border-blue-200">
-                        <label class="block font-bold text-[11px] text-blue-800">📘 전자책 파일 업로드 (PDF, EPUB 등)</label>
-                        <input type="file" @change="e => uploadFileStream(e, 'ebook')" accept=".pdf,.epub,.zip" class="w-full text-[10px] pt-1">
-                        <p v-if="newProduct.ebook_url" class="text-[10px] text-green-600 font-bold mt-1">✅ 파일 업로드 완료</p>
-                    </div>
                     <button @click="addProduct" class="w-full py-3 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition mt-2">스토어 실시간 배포 진열</button>
                 </div>
 
