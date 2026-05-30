@@ -199,6 +199,11 @@
                     <span class="text-[10px] text-gray-400">OFFICIAL</span>
                 </div>
                 <p class="text-gray-500 leading-relaxed whitespace-pre-line">{{ n.content }}</p>
+                <div v-if="n.file_url" class="pt-2">
+                    <a :href="n.file_url" target="_blank" download class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg transition">
+                        📥 첨부파일 다운로드
+                    </a>
+                </div>
             </div>
             <div v-if="accessibleNotices.length === 0 && selectedNoticeCategory !== '전체'" class="text-center py-12 text-gray-400 text-xs">
                 <p class="text-lg mb-2">🔒</p>
@@ -351,6 +356,11 @@
                         </select>
                         <input v-model="newNotice.title" type="text" placeholder="공지 헤드라인 제목" class="w-full p-2 border rounded-xl bg-white focus:outline-none">
                         <textarea v-model="newNotice.content" placeholder="공지 정보 본문 스트림 서술" class="w-full p-2 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
+                        <div class="space-y-1 bg-blue-50 p-3 rounded-xl border border-blue-200">
+                            <label class="block font-bold text-[11px] text-blue-800">📎 파일 첨부 (PDF, ZIP 등)</label>
+                            <input type="file" @change="uploadNoticeFile" accept=".pdf,.zip,.epub,.docx" class="w-full text-[10px] pt-1">
+                            <p v-if="newNotice.file_url" class="text-[10px] text-green-600 font-bold mt-1">✅ 파일 업로드 완료</p>
+                        </div>
                         <button @click="addNotice" class="w-full py-2 bg-gray-700 text-white font-bold rounded-xl hover:bg-black transition">공지 배포</button>
                     </div>
                     <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
@@ -478,7 +488,7 @@
             const newProduct = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [], hidden: false, ebook_url: '' });
             const editingProductId = ref(null);
             const editProductForm = ref({ name: '', category: '', price: null, description: '' });
-            const newNotice = ref({ category: '', title: '', content: '' });
+            const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
 
             // ── 데이터 로딩 ───────────────────────────────────────
             const loadAll = async () => {
@@ -858,11 +868,21 @@
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
                 alert(`📢 공지사항이 배포되었습니다.`);
-                newNotice.value = { category: categories.value[0]?.name || '', title: '', content: '' };
+                newNotice.value = { category: categories.value[0]?.name || '', title: '', content: '', file_url: '' };
                 navigateTo('notice');
             };
             const deleteNotice = async (id) => {
                 if (confirm('삭제하시겠습니까?')) { await sb.from('notices').delete().eq('id', id); await loadAll(); }
+            };
+
+            const uploadNoticeFile = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const path = `notice-files/${Date.now()}_${file.name}`;
+                const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                if (error) { alert('파일 업로드 실패: ' + error.message); return; }
+                newNotice.value.file_url = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                alert('✅ 파일이 업로드되었습니다.');
             };
 
             // ── onMounted ─────────────────────────────────────────
@@ -895,7 +915,7 @@
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream,
                 addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility,
-                addNotice, deleteNotice
+                addNotice, deleteNotice, uploadNoticeFile
             };
         }
     }).mount('#app');
