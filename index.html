@@ -1017,15 +1017,17 @@
                 window.history.replaceState({}, '', window.location.pathname);
 
                 if (payment === 'success' && orderId && paymentKey) {
-                    const { data: order } = await sb.from('orders').select('*').eq('order_id', orderId).eq('status', 'pending').single();
-                    if (!order) { alert('❌ 유효하지 않은 결제입니다.'); return; }
-                    if (order.amount !== amount) { alert('❌ 결제 금액이 일치하지 않습니다.'); return; }
-                    const { data: dupKey } = await sb.from('orders').select('id').eq('payment_key', paymentKey).single();
-                    if (dupKey) { alert('❌ 이미 사용된 결제키입니다.'); return; }
+                    // 해당 orderId의 첫 번째 행으로 금액/상태 검증
+                    const { data: orders } = await sb.from('orders').select('*').eq('order_id', orderId).eq('status', 'pending');
+                    if (!orders || orders.length === 0) { alert('❌ 유효하지 않은 결제입니다.'); return; }
+                    if (orders[0].amount !== amount) { alert('❌ 결제 금액이 일치하지 않습니다.'); return; }
+                    // paymentKey 중복 확인
+                    const { data: dupKeys } = await sb.from('orders').select('id').eq('payment_key', paymentKey);
+                    if (dupKeys && dupKeys.length > 0) { alert('❌ 이미 사용된 결제키입니다.'); return; }
+                    // 모든 행 paid 처리
                     await sb.from('orders').update({ payment_key: paymentKey, status: 'paid' }).eq('order_id', orderId);
-                    // 해당 orderId의 모든 상품에 대해 purchases 저장
-                    const { data: allOrders } = await sb.from('orders').select('*').eq('order_id', orderId);
-                    const purchaseRows = (allOrders || []).map(o => ({
+                    // 모든 상품에 대해 purchases 저장
+                    const purchaseRows = orders.map(o => ({
                         user_id: o.user_id,
                         product_id: o.product_id,
                         order_id: orderId
