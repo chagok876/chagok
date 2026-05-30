@@ -636,6 +636,14 @@
             // ── 결제 ──────────────────────────────────────────────
             const proceedToCheckout = async (type) => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
+                // user_id가 없으면 DB에서 다시 조회
+                if (!userSession.value.id) {
+                    const { data: foundUser } = await sb.from('users').select('id').eq('username', userSession.value.name).single();
+                    if (foundUser) {
+                        userSession.value.id = foundUser.id;
+                        localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
+                    }
+                }
                 let productId = null;
                 if (type === 'direct') {
                     checkoutSummary.value.amount = activeProduct.value.price;
