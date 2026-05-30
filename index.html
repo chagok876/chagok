@@ -974,7 +974,13 @@
                     amount: checkoutSummary.value.amount,
                     status: 'pending'
                 }));
-                await sb.from('orders').insert(orderRows);
+                console.log('orderRows:', JSON.stringify(orderRows));
+                const { error: orderError } = await sb.from('orders').insert(orderRows);
+                if (orderError) {
+                    alert('주문 저장 오류: ' + orderError.message);
+                    console.error('order insert error:', orderError);
+                    return;
+                }
 
                 currentTab.value = 'checkout';
                 await nextTick();
