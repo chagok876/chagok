@@ -951,28 +951,30 @@
                         localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
                     }
                 }
-                let productId = null;
+                let productIds = [];
                 if (type === 'direct') {
                     checkoutSummary.value.amount = activeProduct.value.price;
                     checkoutSummary.value.orderName = activeProduct.value.name;
-                    productId = activeProduct.value.id;
+                    productIds = [activeProduct.value.id];
                 } else {
                     if (cart.value.length === 0) return;
                     checkoutSummary.value.amount = cartTotalPrice.value;
                     checkoutSummary.value.orderName = cart.value.length === 1 ? cart.value[0].product.name : `${cart.value[0].product.name} 외 ${cart.value.length - 1}건`;
-                    productId = cart.value[0].product.id;
+                    productIds = cart.value.map(item => item.product.id);
                 }
                 const orderId = 'CGK-' + Date.now();
                 checkoutSummary.value.orderId = orderId;
-                checkoutSummary.value.productId = productId;
+                checkoutSummary.value.productIds = productIds;
 
-                await sb.from('orders').insert({
+                // 상품별로 orders에 각각 저장
+                const orderRows = productIds.map(pid => ({
                     order_id: orderId,
                     user_id: userSession.value.id,
-                    product_id: productId,
+                    product_id: pid,
                     amount: checkoutSummary.value.amount,
                     status: 'pending'
-                });
+                }));
+                await sb.from('orders').insert(orderRows);
 
                 currentTab.value = 'checkout';
                 await nextTick();
@@ -1021,7 +1023,14 @@
                     const { data: dupKey } = await sb.from('orders').select('id').eq('payment_key', paymentKey).single();
                     if (dupKey) { alert('❌ 이미 사용된 결제키입니다.'); return; }
                     await sb.from('orders').update({ payment_key: paymentKey, status: 'paid' }).eq('order_id', orderId);
-                    await sb.from('purchases').insert({ user_id: order.user_id, product_id: order.product_id, order_id: orderId });
+                    // 해당 orderId의 모든 상품에 대해 purchases 저장
+                    const { data: allOrders } = await sb.from('orders').select('*').eq('order_id', orderId);
+                    const purchaseRows = (allOrders || []).map(o => ({
+                        user_id: o.user_id,
+                        product_id: o.product_id,
+                        order_id: orderId
+                    }));
+                    if (purchaseRows.length > 0) await sb.from('purchases').insert(purchaseRows);
                     await loadMyPurchases();
                     alert('🎉 결제가 완료되었습니다! 전자책을 다운로드할 수 있습니다.');
                     navigateTo('shop');
