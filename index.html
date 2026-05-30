@@ -329,12 +329,26 @@
                                 </div>
                             </div>
                             <div v-else class="space-y-2 bg-amber-50/50 p-2 rounded-lg border border-amber-200">
-                                <input v-model="editProductForm.name" type="text" class="w-full p-1.5 border rounded bg-white text-xs">
+                                <input v-model="editProductForm.name" type="text" class="w-full p-1.5 border rounded bg-white text-xs" placeholder="상품명">
                                 <select v-model="editProductForm.category" class="w-full p-1.5 border rounded bg-white text-xs">
                                     <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
                                 </select>
-                                <input v-model.number="editProductForm.price" type="number" class="w-full p-1.5 border rounded bg-white text-xs">
-                                <textarea v-model="editProductForm.description" class="w-full p-1.5 border rounded bg-white text-xs" rows="2"></textarea>
+                                <input v-model.number="editProductForm.price" type="number" class="w-full p-1.5 border rounded bg-white text-xs" placeholder="가격">
+                                <textarea v-model="editProductForm.description" class="w-full p-1.5 border rounded bg-white text-xs" rows="2" placeholder="설명"></textarea>
+                                <div class="bg-white p-2 rounded border border-gray-200 space-y-1">
+                                    <label class="block text-[10px] font-bold text-gray-500">■ 대표 이미지 교체</label>
+                                    <div v-if="editProductForm.image" class="w-full h-20 overflow-hidden rounded mb-1">
+                                        <img :src="editProductForm.image" class="w-full h-full object-cover">
+                                    </div>
+                                    <input type="file" @change="e => uploadEditProductImage(e, 'main')" accept="image/*" class="w-full text-[10px]">
+                                </div>
+                                <div class="bg-white p-2 rounded border border-amber-200 space-y-1">
+                                    <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (다중)</label>
+                                    <div v-if="editProductForm.detailImages && editProductForm.detailImages.length > 0" class="flex gap-1 flex-wrap mb-1">
+                                        <img v-for="(img, i) in editProductForm.detailImages" :key="i" :src="img" class="w-12 h-12 object-cover rounded border">
+                                    </div>
+                                    <input type="file" @change="e => uploadEditProductImage(e, 'detail')" accept="image/*" multiple class="w-full text-[10px]">
+                                </div>
                                 <div class="flex justify-end space-x-1">
                                     <button @click="saveProductEdit" class="px-2 py-1 bg-green-600 text-white rounded text-[11px] font-bold">저장</button>
                                     <button @click="editingProductId = null" class="px-2 py-1 bg-gray-400 text-white rounded text-[11px] font-bold">취소</button>
@@ -601,7 +615,7 @@
             const notices = ref([]);
             const newProduct = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [], hidden: false, ebook_url: '' });
             const editingProductId = ref(null);
-            const editProductForm = ref({ name: '', category: '', price: null, description: '' });
+            const editProductForm = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
             const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
             const editingNoticeId = ref(null);
             const editNoticeForm = ref({ category: '', title: '', content: '', file_url: '' });
@@ -1039,14 +1053,40 @@
                 newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, description: '', image: '', detailImages: [], hidden: false, ebook_url: '' };
                 navigateTo('shop');
             };
-            const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p }; };
+            const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p, detailImages: p.detailImages || [] }; };
             const saveProductEdit = async () => {
                 const { error } = await sb.from('products').update({
-                    name: editProductForm.value.name, category: editProductForm.value.category,
-                    price: editProductForm.value.price, description: editProductForm.value.description
+                    name: editProductForm.value.name,
+                    category: editProductForm.value.category,
+                    price: editProductForm.value.price,
+                    description: editProductForm.value.description,
+                    image: editProductForm.value.image,
+                    detail_images: editProductForm.value.detailImages || []
                 }).eq('id', editingProductId.value);
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll(); alert('수정 완료'); editingProductId.value = null;
+            };
+
+            const uploadEditProductImage = async (event, type) => {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                if (type === 'main') {
+                    const file = files[0];
+                    const path = `images/${Date.now()}_edit_main.${file.name.split('.').pop()}`;
+                    const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                    if (error) { alert('업로드 실패: ' + error.message); return; }
+                    editProductForm.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                    alert('✅ 대표 이미지 업로드 완료');
+                } else if (type === 'detail') {
+                    editProductForm.value.detailImages = [];
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const path = `images/${Date.now()}_edit_detail_${i}.${file.name.split('.').pop()}`;
+                        const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                        if (!error) editProductForm.value.detailImages.push(sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl);
+                    }
+                    alert('✅ 상세 이미지 업로드 완료');
+                }
             };
             const deleteProduct = async (id) => {
                 if (confirm('삭제하시겠습니까?')) { await sb.from('products').delete().eq('id', id); await loadAll(); }
@@ -1141,7 +1181,7 @@
                 checkAdminCredentials, handleAdminNav, logoutAdmin,
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream,
-                addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility,
+                addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility, uploadEditProductImage,
                 addNotice, deleteNotice, uploadNoticeFile, startEditNotice, saveNoticeEdit, uploadEditNoticeFile, editingNoticeId, editNoticeForm
             };
         }
