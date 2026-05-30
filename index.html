@@ -428,23 +428,14 @@
         return new Promise((resolve, reject) => {
             if (window.TossPayments) { resolve(); return; }
             document.querySelectorAll('script[src*="tosspayments"]').forEach(el => el.remove());
-            const urls = [
-                'https://js.tosspayments.com/v1/payment',
-                'https://js.tosspayments.com/v1',
-            ];
-            let idx = 0;
-            function tryLoad() {
-                if (idx >= urls.length) { reject(new Error('토스 SDK 로드 실패')); return; }
-                const s = document.createElement('script');
-                s.src = urls[idx++];
-                s.onload = () => {
-                    if (window.TossPayments) resolve();
-                    else tryLoad();
-                };
-                s.onerror = () => tryLoad();
-                document.head.appendChild(s);
-            }
-            tryLoad();
+            const s = document.createElement('script');
+            s.src = 'https://js.tosspayments.com/v1/payment';
+            s.onload = () => {
+                if (window.TossPayments) resolve();
+                else reject(new Error('TossPayments 객체 없음'));
+            };
+            s.onerror = () => reject(new Error('토스 SDK 로드 실패'));
+            document.head.appendChild(s);
         });
     }
 
