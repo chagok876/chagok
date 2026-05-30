@@ -361,15 +361,37 @@
                     <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
                         <h3 class="font-bold text-xs text-gray-800 border-b pb-2">📋 현재 배포 중인 공지 목록 (삭제 가능)</h3>
                         <div class="max-h-40 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
-                            <div v-for="n in notices" :key="n.id" class="p-2 flex justify-between items-start gap-2 text-[11px]">
-                                <div class="space-y-0.5">
-                                    <div class="flex items-center space-x-1">
-                                        <span class="bg-amber-100 text-amber-900 text-[9px] px-1 rounded font-bold">{{ n.category }}</span>
-                                        <p class="font-bold text-gray-700 line-clamp-1">{{ n.title }}</p>
+                            <div v-for="n in notices" :key="n.id" class="p-2 text-[11px] space-y-1.5">
+                                <div v-if="editingNoticeId !== n.id" class="flex justify-between items-start gap-2">
+                                    <div class="space-y-0.5">
+                                        <div class="flex items-center space-x-1">
+                                            <span class="bg-amber-100 text-amber-900 text-[9px] px-1 rounded font-bold">{{ n.category }}</span>
+                                            <p class="font-bold text-gray-700 line-clamp-1">{{ n.title }}</p>
+                                        </div>
+                                        <p class="text-gray-400 line-clamp-1">{{ n.content }}</p>
+                                        <p v-if="n.file_url" class="text-blue-500 text-[9px]">📎 파일 첨부됨</p>
                                     </div>
-                                    <p class="text-gray-400 line-clamp-1">{{ n.content }}</p>
+                                    <div class="flex gap-1 shrink-0">
+                                        <button @click="startEditNotice(n)" class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200 hover:bg-gray-200 font-bold text-[10px]">수정</button>
+                                        <button @click="deleteNotice(n.id)" class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 font-bold text-[10px]">삭제</button>
+                                    </div>
                                 </div>
-                                <button @click="deleteNotice(n.id)" class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 font-bold shrink-0 text-[10px]">삭제</button>
+                                <div v-else class="space-y-1.5 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                                    <select v-model="editNoticeForm.category" class="w-full p-1.5 border rounded bg-white text-[10px]">
+                                        <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                                    </select>
+                                    <input v-model="editNoticeForm.title" type="text" class="w-full p-1.5 border rounded bg-white text-[10px]">
+                                    <textarea v-model="editNoticeForm.content" class="w-full p-1.5 border rounded bg-white text-[10px]" rows="2"></textarea>
+                                    <div class="space-y-1 bg-white p-2 rounded border border-blue-200">
+                                        <label class="block text-[10px] text-blue-700 font-bold">📎 파일 교체 (선택)</label>
+                                        <input type="file" @change="uploadEditNoticeFile" accept=".pdf,.zip,.epub,.docx" class="w-full text-[10px]">
+                                        <p v-if="editNoticeForm.file_url" class="text-[9px] text-green-600 font-bold">✅ 파일 있음</p>
+                                    </div>
+                                    <div class="flex justify-end gap-1">
+                                        <button @click="saveNoticeEdit" class="px-2 py-1 bg-green-600 text-white rounded text-[10px] font-bold">저장</button>
+                                        <button @click="editingNoticeId = null" class="px-2 py-1 bg-gray-400 text-white rounded text-[10px] font-bold">취소</button>
+                                    </div>
+                                </div>
                             </div>
                             <div v-if="notices.length === 0" class="text-center py-6 text-gray-400">등록된 공지사항이 없습니다.</div>
                         </div>
@@ -484,6 +506,8 @@
             const editingProductId = ref(null);
             const editProductForm = ref({ name: '', category: '', price: null, description: '' });
             const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
+            const editingNoticeId = ref(null);
+            const editNoticeForm = ref({ category: '', title: '', content: '', file_url: '' });
 
             // ── 데이터 로딩 ───────────────────────────────────────
             const loadAll = async () => {
@@ -870,6 +894,35 @@
                 if (confirm('삭제하시겠습니까?')) { await sb.from('notices').delete().eq('id', id); await loadAll(); }
             };
 
+            const startEditNotice = (n) => {
+                editingNoticeId.value = n.id;
+                editNoticeForm.value = { category: n.category, title: n.title, content: n.content, file_url: n.file_url || '' };
+            };
+
+            const uploadEditNoticeFile = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const ext = file.name.split('.').pop();
+                const path = `notice-files/${Date.now()}.${ext}`;
+                const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                if (error) { alert('파일 업로드 실패: ' + error.message); return; }
+                editNoticeForm.value.file_url = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                alert('✅ 파일이 업로드되었습니다.');
+            };
+
+            const saveNoticeEdit = async () => {
+                const { error } = await sb.from('notices').update({
+                    category: editNoticeForm.value.category,
+                    title: editNoticeForm.value.title,
+                    content: editNoticeForm.value.content,
+                    file_url: editNoticeForm.value.file_url
+                }).eq('id', editingNoticeId.value);
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll();
+                alert('공지사항이 수정되었습니다.');
+                editingNoticeId.value = null;
+            };
+
             const uploadNoticeFile = async (event) => {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -911,7 +964,7 @@
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream,
                 addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility,
-                addNotice, deleteNotice, uploadNoticeFile
+                addNotice, deleteNotice, uploadNoticeFile, startEditNotice, saveNoticeEdit, uploadEditNoticeFile, editingNoticeId, editNoticeForm
             };
         }
     }).mount('#app');
