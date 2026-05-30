@@ -49,6 +49,7 @@
                     <button v-if="!userSession.isLoggedIn" @click="openLoginModal" class="text-xs text-gray-500 hover:text-black transition font-medium border border-gray-300 px-2.5 py-1 rounded-md bg-white">로그인</button>
                     <div v-else class="flex items-center space-x-2 text-xs">
                         <span class="text-gray-600 font-bold hidden sm:inline">👤 {{ userSession.name }}님</span>
+                        <button @click="isMypageOpen = true" class="text-[10px] text-gray-500 hover:text-black font-medium border border-gray-200 px-2 py-0.5 rounded">마이페이지</button>
                         <button @click="logoutUser" class="text-[10px] text-red-600 hover:underline">로그아웃</button>
                     </div>
                 </div>
@@ -418,6 +419,84 @@
         </div>
     </main>
 
+    <!-- 개인정보처리방침 팝업 -->
+    <div v-if="isPrivacyOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg w-full space-y-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-sm font-black text-gray-800">개인정보처리방침</h3>
+                <button @click="isPrivacyOpen = false" class="text-gray-400 hover:text-black font-bold text-lg">✕</button>
+            </div>
+            <div class="text-xs text-gray-600 space-y-4 leading-relaxed">
+                <div>
+                    <p class="font-black text-gray-800 mb-1">1. 수집하는 개인정보 항목</p>
+                    <p>구글 로그인 시: 이름, 이메일 주소</p>
+                    <p>일반 회원가입 시: 아이디, 비밀번호</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">2. 개인정보 수집 및 이용 목적</p>
+                    <p>회원 식별 및 로그인 처리</p>
+                    <p>구매 내역 관리 및 콘텐츠 열람 권한 부여</p>
+                    <p>고객 문의 응대</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">3. 개인정보 보유 및 이용 기간</p>
+                    <p>회원 탈퇴 시 즉시 파기</p>
+                    <p>단, 관련 법령에 따라 일정 기간 보관이 필요한 경우 해당 기간 동안 보관</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">4. 개인정보의 제3자 제공</p>
+                    <p>이용자의 개인정보를 제3자에게 제공하지 않습니다.</p>
+                    <p>단, 이용자의 동의가 있거나 법령에 의한 경우는 예외로 합니다.</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">5. 개인정보 처리 위탁</p>
+                    <p>결제 처리: 토스페이먼츠</p>
+                    <p>로그인 처리: Google LLC</p>
+                    <p>데이터 저장: Supabase</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">6. 이용자의 권리</p>
+                    <p>개인정보 열람, 수정, 삭제 요청 가능</p>
+                    <p>회원 탈퇴 시 모든 개인정보 즉시 삭제</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">7. 개인정보 보호책임자</p>
+                    <p>이메일: chagok.log@gmail.com</p>
+                </div>
+                <div>
+                    <p class="font-black text-gray-800 mb-1">8. 시행일</p>
+                    <p>2026년 6월 1일</p>
+                </div>
+            </div>
+            <button @click="isPrivacyOpen = false" class="w-full py-2.5 bg-[#5C5245] text-white text-xs font-bold rounded-xl hover:bg-black transition">확인</button>
+        </div>
+    </div>
+
+    <!-- 마이페이지 팝업 -->
+    <div v-if="isMypageOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-2xl border border-gray-200 p-6 max-w-sm w-full space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-sm font-black text-gray-800">마이페이지</h3>
+                <button @click="isMypageOpen = false" class="text-gray-400 hover:text-black font-bold text-lg">✕</button>
+            </div>
+            <div class="text-xs space-y-3">
+                <div class="bg-[#FAF4EA] p-4 rounded-xl">
+                    <p class="text-gray-500 mb-1">로그인 계정</p>
+                    <p class="font-black text-gray-800 text-sm">👤 {{ userSession.name }}님</p>
+                </div>
+                <div class="bg-[#FAF4EA] p-4 rounded-xl">
+                    <p class="text-gray-500 mb-2">구매한 상품</p>
+                    <p v-if="myPurchases.length === 0" class="text-gray-400">구매 내역이 없습니다.</p>
+                    <div v-for="p in myPurchases" :key="p.id" class="text-gray-700 font-bold py-1 border-b border-[#EAE1D4] last:border-0">
+                        {{ products.find(prod => prod.id === p.product_id)?.name || '상품' }}
+                    </div>
+                </div>
+            </div>
+            <button @click="deleteMyAccount" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl border border-red-200 transition">회원 탈퇴</button>
+            <button @click="isMypageOpen = false" class="w-full py-2.5 bg-[#5C5245] text-white text-xs font-bold rounded-xl hover:bg-black transition">닫기</button>
+        </div>
+    </div>
+
     <!-- 로그인 모달 -->
     <div v-if="isLoginModalOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
         <div class="bg-white rounded-2xl border border-gray-200 p-6 max-w-sm w-full space-y-4">
@@ -455,8 +534,9 @@
         </div>
     </div>
 
-    <footer class="border-t border-[#EAE1D4] bg-[#FAF4EA] py-6 text-center text-[11px] text-gray-400">
+    <footer class="border-t border-[#EAE1D4] bg-[#FAF4EA] py-6 text-center text-[11px] text-gray-400 space-y-2">
         <p>© 2026 chagok.collects. All Rights Reserved.</p>
+        <p><button @click="isPrivacyOpen = true" class="underline hover:text-gray-600 transition">개인정보처리방침</button></p>
     </footer>
 
     <div class="fixed bottom-3 right-4 z-50 select-none">
@@ -497,6 +577,8 @@
             const searchQuery = ref('');
             const selectedNoticeCategory = ref('전체');
             const isLoginModalOpen = ref(false);
+            const isPrivacyOpen = ref(false);
+            const isMypageOpen = ref(false);
             const authMode = ref('login');
             const authForm = ref({ username: '', password: '' });
             const userSession = ref({ isLoggedIn: false, name: '', id: null });
@@ -676,6 +758,23 @@
                     }
                 });
                 client.requestAccessToken();
+            };
+
+            const deleteMyAccount = async () => {
+                if (!confirm('정말 탈퇴하시겠습니까? 모든 구매 내역이 삭제됩니다.')) return;
+                const { data: targetUser } = await sb.from('users').select('id').eq('username', userSession.value.name).single();
+                if (targetUser) {
+                    await sb.from('purchases').delete().eq('user_id', targetUser.id);
+                    await sb.from('orders').delete().eq('user_id', targetUser.id);
+                    await sb.from('users').delete().eq('id', targetUser.id);
+                }
+                userSession.value = { isLoggedIn: false, name: '', id: null };
+                myPurchases.value = [];
+                cart.value = [];
+                localStorage.removeItem('chagok_session');
+                isMypageOpen.value = false;
+                alert('탈퇴가 완료되었습니다.');
+                navigateTo('shop');
             };
 
             const kickUser = async (username) => {
@@ -1015,7 +1114,7 @@
                 myPurchases,
                 visibleCategories, filteredProducts, filteredNotices,
                 navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices,
-                openLoginModal, closeLoginModal, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
+                openLoginModal, closeLoginModal, isPrivacyOpen, isMypageOpen, deleteMyAccount, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
                 proceedToCheckout, requestTossPayment,
                 checkAdminCredentials, handleAdminNav, logoutAdmin,
