@@ -6,7 +6,6 @@
     <title>chagok.collects</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://js.tosspayments.com/v1/payment-widget"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
@@ -20,18 +19,14 @@
 <body class="min-h-screen flex flex-col relative">
 
 <div id="app" v-cloak class="flex flex-col min-h-screen">
-    
+
     <header class="border-b border-[#EAE1D4] bg-[#FAF4EA] sticky top-0 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            
             <div class="flex items-center space-x-8">
                 <div @click="navigateTo('shop')" class="flex items-center space-x-2 cursor-pointer select-none group">
                     <span class="text-xl text-gray-500 tracking-normal">☁︎</span>
-                    <span class="text-base font-medium tracking-[0.12em] text-gray-600 font-sans lowercase">
-                        chagok.collects
-                    </span>
+                    <span class="text-base font-medium tracking-[0.12em] text-gray-600 font-sans lowercase">chagok.collects</span>
                 </div>
-                
                 <nav class="flex space-x-5 text-xs font-bold items-center text-gray-400 pt-0.5">
                     <button @click="navigateTo('shop')" :class="{'text-black border-b-2 border-[#5C5245]': currentTab === 'shop' || currentTab === 'product_detail'}" class="pb-1 hover:text-black transition">SHOP</button>
                     <button @click="navigateTo('cart')" :class="{'text-black border-b-2 border-[#5C5245]': currentTab === 'cart' || currentTab === 'checkout'}" class="pb-1 hover:text-black transition relative">
@@ -41,20 +36,16 @@
                     <button @click="navigateTo('notice')" :class="{'text-black border-b-2 border-[#5C5245]': currentTab === 'notice'}" class="pb-1 hover:text-black transition">NOTICE</button>
                 </nav>
             </div>
-            
             <div class="flex items-center space-x-3.5">
                 <div class="relative flex items-center">
-                    <input v-model="searchQuery" @input="triggerSearch" type="text" placeholder="브랜드 또는 상품명 검색..." 
+                    <input v-model="searchQuery" @input="triggerSearch" type="text" placeholder="브랜드 또는 상품명 검색..."
                            class="w-40 sm:w-48 bg-[#EFE9DC] text-xs px-3 py-1.5 pl-8 rounded-lg focus:outline-none focus:bg-white border border-transparent focus:border-[#5C5245] transition-all text-gray-700 placeholder-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 absolute left-2.5 text-gray-400">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.603 10.601Z" />
                     </svg>
                 </div>
-
                 <div class="flex items-center space-x-2">
-                    <button v-if="!userSession.isLoggedIn" @click="openLoginModal" class="text-xs text-gray-500 hover:text-black transition font-medium border border-gray-300 px-2.5 py-1 rounded-md bg-white">
-                        로그인
-                    </button>
+                    <button v-if="!userSession.isLoggedIn" @click="openLoginModal" class="text-xs text-gray-500 hover:text-black transition font-medium border border-gray-300 px-2.5 py-1 rounded-md bg-white">로그인</button>
                     <div v-else class="flex items-center space-x-2 text-xs">
                         <span class="text-gray-600 font-bold hidden sm:inline">👤 {{ userSession.name }}님</span>
                         <button @click="logoutUser" class="text-[10px] text-red-600 hover:underline">로그아웃</button>
@@ -65,7 +56,8 @@
     </header>
 
     <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
-        
+
+        <!-- SHOP -->
         <div v-if="currentTab === 'shop'">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                 <div v-for="product in filteredProducts" :key="product.id" @click="goToDetailView(product)"
@@ -87,12 +79,12 @@
             <div v-if="filteredProducts.length === 0" class="text-center py-20 text-xs text-gray-400">진열된 상품이 없습니다.</div>
         </div>
 
+        <!-- 상품 상세 -->
         <div v-if="currentTab === 'product_detail' && activeProduct">
             <div class="mb-6 flex items-center justify-between border-b border-[#EAE1D4] pb-3">
                 <button @click="navigateTo('shop')" class="text-xs text-gray-500 hover:text-black flex items-center gap-1 font-medium">◀ 카탈로그로 돌아가기</button>
                 <span class="text-xs text-gray-400">chagok > {{ activeProduct.category }}</span>
             </div>
-
             <div class="bg-white p-8 rounded-2xl border border-[#F0EAE0] space-y-12">
                 <div class="flex flex-col md:flex-row gap-12">
                     <div class="md:w-1/2">
@@ -101,7 +93,6 @@
                             <span v-else>등록된 이미지가 없습니다.</span>
                         </div>
                     </div>
-
                     <div class="md:w-1/2 flex flex-col justify-between py-2">
                         <div class="space-y-6">
                             <div>
@@ -110,13 +101,11 @@
                                 <div class="text-xl font-bold text-[#5C5245] mt-2">판매가: {{ formatPrice(activeProduct.price) }}원</div>
                             </div>
                         </div>
-
                         <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
                             <div class="flex justify-between items-center px-1">
                                 <span class="text-xs font-bold text-gray-500">최종 결제 금액</span>
                                 <span class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
                             </div>
-
                             <div class="grid grid-cols-2 gap-3">
                                 <button @click="addToCart" class="py-4 bg-[#EFE9DC] hover:bg-[#E2D9C8] text-[#5C5245] text-xs font-bold rounded-xl tracking-wider transition">🛒 장바구니 담기</button>
                                 <button @click="proceedToCheckout('direct')" class="py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">💳 즉시 결제하기</button>
@@ -127,13 +116,11 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="border-t border-[#EAE1D4] pt-10 space-y-8">
                     <div class="bg-[#FAF4EA] p-6 rounded-2xl border border-[#EAE1D4]">
                         <h3 class="text-xs font-black text-gray-700 mb-3 tracking-wider uppercase">Product Description</h3>
                         <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{{ activeProduct.description }}</p>
                     </div>
-
                     <div v-if="activeProduct.detailImages && activeProduct.detailImages.length > 0" class="space-y-4 pt-4">
                         <h3 class="text-xs font-black text-gray-400 tracking-wider uppercase text-center mb-6">— MORE DETAIL IMAGES —</h3>
                         <div class="flex flex-col gap-6 max-w-3xl mx-auto">
@@ -146,9 +133,10 @@
             </div>
         </div>
 
+        <!-- 장바구니 -->
         <div v-if="currentTab === 'cart'" class="max-w-4xl mx-auto space-y-6">
             <h2 class="text-lg font-black text-[#5C5245] tracking-wide mb-2">SHOPPING CART (장바구니)</h2>
-            <div v-if="cart.length === 0" class="bg-white rounded-2xl border border-[#F0EAE0] p-20 text-center space-y-4">
+            <div v-if="cart.length === 0" class="bg-white rounded-2xl border border-[#F0EAE0] p-20 text-center">
                 <p class="text-xs text-gray-400">장바구니가 비어 있습니다.</p>
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -158,9 +146,7 @@
                             <img v-if="item.product.image" :src="item.product.image" class="w-full h-full object-cover">
                         </div>
                         <div class="flex-grow flex flex-col justify-between text-xs">
-                            <div>
-                                <div class="font-bold text-gray-800">{{ item.product.name }}</div>
-                            </div>
+                            <div class="font-bold text-gray-800">{{ item.product.name }}</div>
                             <div class="font-bold text-[#5C5245] mt-2">{{ formatPrice(item.singleTotalPrice) }}원</div>
                         </div>
                         <button @click="removeFromCart(idx)" class="absolute top-3 right-3 text-gray-400 hover:text-red-600 text-xs font-bold">✕</button>
@@ -171,39 +157,30 @@
                         <span>최종 결제 금액</span>
                         <span>{{ formatPrice(cartTotalPrice) }}원</span>
                     </div>
-                    <button @click="proceedToCheckout('cart')" class="w-full py-3.5 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-widest transition">
-                        주문 결제 진행하기
-                    </button>
+                    <button @click="proceedToCheckout('cart')" class="w-full py-3.5 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-widest transition">주문 결제 진행하기</button>
                 </div>
             </div>
         </div>
 
+        <!-- 결제 -->
         <div v-show="currentTab === 'checkout'" class="max-w-2xl mx-auto space-y-6">
             <div class="mb-4"><button @click="navigateTo('cart')" class="text-xs text-gray-500 hover:text-black font-medium">◀ 뒤로 돌아가기</button></div>
             <div class="bg-white p-6 rounded-2xl border border-[#F0EAE0] space-y-6">
-                <div id="payment-method"></div><div id="agreement"></div>
+                <div id="payment-method"></div>
+                <div id="agreement"></div>
                 <button @click="requestTossPayment" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl tracking-widest transition shadow-md">🔒 안전 보안 결제하기</button>
             </div>
         </div>
 
+        <!-- 공지사항 -->
         <div v-if="currentTab === 'notice'" class="max-w-3xl mx-auto space-y-6">
             <div class="flex justify-between items-center border-b border-[#EAE1D4] pb-2">
                 <h2 class="text-lg font-black text-[#5C5245]">Notice</h2>
                 <div class="flex flex-wrap gap-2 text-xs">
-                    <button @click="selectedNoticeCategory = '전체'"
-                            :class="selectedNoticeCategory === '전체' ? 'bg-[#5C5245] text-white font-bold' : 'bg-white text-gray-500 border border-gray-200'"
-                            class="px-3 py-1.5 rounded-lg transition-all">
-                        전체
-                    </button>
-                    <button v-for="cat in visibleCategories" :key="cat.name"
-                            @click="selectedNoticeCategory = cat.name"
-                            :class="selectedNoticeCategory === cat.name ? 'bg-[#5C5245] text-white font-bold' : 'bg-white text-gray-500 border border-gray-200'"
-                            class="px-3 py-1.5 rounded-lg transition-all">
-                        {{ cat.name }}
-                    </button>
+                    <button @click="selectedNoticeCategory = '전체'" :class="selectedNoticeCategory === '전체' ? 'bg-[#5C5245] text-white font-bold' : 'bg-white text-gray-500 border border-gray-200'" class="px-3 py-1.5 rounded-lg transition-all">전체</button>
+                    <button v-for="cat in visibleCategories" :key="cat.name" @click="selectedNoticeCategory = cat.name" :class="selectedNoticeCategory === cat.name ? 'bg-[#5C5245] text-white font-bold' : 'bg-white text-gray-500 border border-gray-200'" class="px-3 py-1.5 rounded-lg transition-all">{{ cat.name }}</button>
                 </div>
             </div>
-
             <div v-for="n in filteredNotices" :key="n.id" class="bg-white p-5 rounded-xl border border-[#F0EAE0] text-xs space-y-3">
                 <div class="flex justify-between items-center border-b border-[#FAF4EA] pb-2">
                     <div class="flex items-center space-x-2">
@@ -217,6 +194,7 @@
             <div v-if="filteredNotices.length === 0" class="text-center py-12 text-gray-400 text-xs">선택된 카테고리에 공지사항이 없습니다.</div>
         </div>
 
+        <!-- 관리자 로그인 -->
         <div v-if="currentTab === 'admin_auth'" class="max-w-sm mx-auto mt-24 bg-white p-8 rounded-2xl border border-gray-100 text-center shadow-sm">
             <h2 class="text-base font-bold text-gray-800 mb-6 tracking-wide">관리자모드 로그인</h2>
             <form @submit.prevent="checkAdminCredentials" class="space-y-4">
@@ -226,8 +204,8 @@
             </form>
         </div>
 
+        <!-- 관리자 대시보드 -->
         <div v-if="currentTab === 'admin' && isAdminAuthenticated" class="max-w-7xl mx-auto space-y-6">
-            
             <div class="bg-white p-6 rounded-2xl border border-red-100 flex justify-between items-center shadow-xs">
                 <div>
                     <h2 class="text-xl font-black text-red-900">chagok.collects 통합 관제 대시보드</h2>
@@ -236,9 +214,9 @@
                 <button @click="logoutAdmin" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-bold transition">대시보드 로그아웃</button>
             </div>
 
+            <!-- 카테고리 관리 -->
             <div class="bg-[#FAF4EA] p-5 rounded-2xl border border-[#EAE1D4] text-xs space-y-4">
                 <h3 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2 flex items-center gap-1">📂 카테고리 마스터 관리 제어판</h3>
-                
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="bg-white p-4 rounded-xl border border-gray-200 space-y-2">
                         <label class="block font-bold text-gray-700">➕ 새 카테고리 생성</label>
@@ -247,35 +225,24 @@
                             <button @click="createNewCategory" class="px-3 py-2 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition shrink-0">추가</button>
                         </div>
                     </div>
-
                     <div class="bg-white p-4 rounded-xl border border-gray-200 md:col-span-2 space-y-2">
                         <label class="block font-bold text-gray-700">📋 카테고리 리스트 (이름 수정 및 노출 통제)</label>
                         <div class="max-h-40 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
                             <div v-for="cat in categories" :key="cat.id" class="p-2.5 flex flex-col sm:flex-row justify-between sm:items-center gap-2" :class="{'opacity-60 bg-gray-100': cat.hidden}">
-                                
                                 <div class="flex items-center space-x-2 flex-grow">
                                     <span v-if="cat.hidden" class="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0">🚫 숨김</span>
                                     <span v-else class="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0">🟢 노출</span>
-                                    
-                                    <div v-if="editingCategoryId !== cat.id" class="font-bold text-gray-800 text-xs">
-                                        {{ cat.name }}
-                                    </div>
+                                    <div v-if="editingCategoryId !== cat.id" class="font-bold text-gray-800 text-xs">{{ cat.name }}</div>
                                     <div v-else class="flex items-center gap-1 flex-grow max-w-xs">
                                         <input v-model="editCategoryNameInput" type="text" class="p-1 border rounded bg-white text-xs w-full">
                                         <button @click="saveCategoryName(cat)" class="px-2 py-1 bg-green-600 text-white text-[10px] rounded font-bold">변경</button>
                                         <button @click="editingCategoryId = null" class="px-2 py-1 bg-gray-400 text-white text-[10px] rounded font-bold">취소</button>
                                     </div>
                                 </div>
-
                                 <div class="flex items-center space-x-1.5 shrink-0 justify-end">
                                     <button v-if="editingCategoryId !== cat.id" @click="startEditCategory(cat)" class="px-2 py-1 bg-gray-100 border text-gray-600 rounded text-[10px] font-bold hover:bg-gray-200">이름 수정</button>
-                                    <button @click="toggleCategoryVisibility(cat)" 
-                                            :class="cat.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'"
-                                            class="px-2 py-1 rounded text-[10px] font-bold transition">
-                                        {{ cat.hidden ? '🔓 노출하기' : '🔒 숨기기' }}
-                                    </button>
+                                    <button @click="toggleCategoryVisibility(cat)" :class="cat.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'" class="px-2 py-1 rounded text-[10px] font-bold transition">{{ cat.hidden ? '🔓 노출하기' : '🔒 숨기기' }}</button>
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -283,57 +250,49 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
-                
+                <!-- 신규 상품 등록 -->
                 <div class="p-5 bg-[#FAF4EA] rounded-2xl border border-[#EAE1D4] space-y-3">
                     <h3 class="font-bold text-sm text-[#5C5245] mb-2 border-b border-[#EAE1D4] pb-2 flex items-center gap-1">📦 신규 상품 배포 등록</h3>
-                    
                     <div>
                         <label class="block text-[11px] text-gray-500 mb-1">商品명</label>
                         <input v-model="newProduct.name" type="text" placeholder="商品 모델명" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
                     </div>
-
                     <div>
                         <label class="block text-[11px] text-gray-500 mb-1">카테고리 선택</label>
                         <select v-model="newProduct.category" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
                             <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
                         </select>
                     </div>
-
                     <div>
                         <label class="block text-[11px] text-gray-500 mb-1">실 배포 판매가 (원)</label>
                         <input v-model.number="newProduct.price" type="number" placeholder="금액 입력" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
                     </div>
-
                     <div>
                         <label class="block text-[11px] text-gray-500 mb-1">상세페이지 상단에 노출될 명세 및 가이드 서술</label>
                         <textarea v-model="newProduct.description" placeholder="상품 명세 가이드 서술" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
                     </div>
-                    
                     <div class="space-y-1 bg-white p-3 rounded-xl border border-gray-200">
                         <label class="block font-bold text-[11px] text-gray-500">■ 대표 카탈로그 섬네일 미디어</label>
                         <input type="file" @change="e => uploadFileStream(e, 'product_main')" accept="image/*" class="w-full text-[10px] pt-1">
                     </div>
-                    
                     <div class="space-y-1 bg-white p-3 rounded-xl border border-amber-200">
                         <label class="block font-bold text-[11px] text-amber-800">■ 상세페이지 하단 롤 스트림 이미지 (다중)</label>
                         <input type="file" @change="e => uploadFileStream(e, 'product_detail')" accept="image/*" multiple class="w-full text-[10px] pt-1">
                     </div>
-
                     <div class="space-y-1 bg-blue-50 p-3 rounded-xl border border-blue-200">
                         <label class="block font-bold text-[11px] text-blue-800">📘 전자책 파일 업로드 (PDF, EPUB 등)</label>
                         <input type="file" @change="e => uploadFileStream(e, 'ebook')" accept=".pdf,.epub,.zip" class="w-full text-[10px] pt-1">
                         <p v-if="newProduct.ebook_url" class="text-[10px] text-green-600 font-bold mt-1">✅ 파일 업로드 완료</p>
                     </div>
-
                     <button @click="addProduct" class="w-full py-3 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition mt-2">스토어 실시간 배포 진열</button>
                 </div>
 
+                <!-- 상품 수정/삭제 -->
                 <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-4">
                     <h3 class="font-bold text-sm text-gray-800 border-b pb-2 flex items-center justify-between">
                         <span>📝 스토어 상품 제어 (수정/삭제/숨김)</span>
                         <span class="text-[11px] font-normal text-gray-400">총 {{ products.length }}개</span>
                     </h3>
-                    
                     <div class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
                         <div v-for="p in products" :key="p.id" class="p-3 bg-[#FBF9F6] rounded-xl border border-gray-100 space-y-2" :class="{'opacity-60 bg-gray-100': p.hidden}">
                             <div v-if="editingProductId !== p.id" class="flex justify-between items-start">
@@ -351,14 +310,9 @@
                                         <button @click="startEditProduct(p)" class="px-2 py-1 bg-gray-200 text-gray-700 rounded text-[11px] font-bold">수정</button>
                                         <button @click="deleteProduct(p.id)" class="px-2 py-1 bg-red-50 text-red-600 rounded text-[11px] font-bold hover:bg-red-100">삭제</button>
                                     </div>
-                                    <button @click="toggleProductVisibility(p)" 
-                                            :class="p.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'"
-                                            class="px-2 py-1 rounded text-[10px] font-bold w-full text-center transition">
-                                        {{ p.hidden ? '🔓 진열하기' : '🔒 숨기기' }}
-                                    </button>
+                                    <button @click="toggleProductVisibility(p)" :class="p.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'" class="px-2 py-1 rounded text-[10px] font-bold w-full text-center transition">{{ p.hidden ? '🔓 진열하기' : '🔒 숨기기' }}</button>
                                 </div>
                             </div>
-                            
                             <div v-else class="space-y-2 bg-amber-50/50 p-2 rounded-lg border border-amber-200">
                                 <input v-model="editProductForm.name" type="text" class="w-full p-1.5 border rounded bg-white text-xs">
                                 <select v-model="editProductForm.category" class="w-full p-1.5 border rounded bg-white text-xs">
@@ -375,19 +329,17 @@
                     </div>
                 </div>
 
+                <!-- 공지 + 회원 -->
                 <div class="space-y-4">
                     <div class="p-5 bg-[#FAF4EA] rounded-2xl border border-[#EAE1D4] space-y-2.5">
                         <h3 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">📢 공식 공지사항 릴리즈</h3>
-                        
                         <select v-model="newNotice.category" class="w-full p-2 border rounded-xl bg-white focus:outline-none">
                             <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
                         </select>
                         <input v-model="newNotice.title" type="text" placeholder="공지 헤드라인 제목" class="w-full p-2 border rounded-xl bg-white focus:outline-none">
                         <textarea v-model="newNotice.content" placeholder="공지 정보 본문 스트림 서술" class="w-full p-2 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
-                        
                         <button @click="addNotice" class="w-full py-2 bg-gray-700 text-white font-bold rounded-xl hover:bg-black transition">공지 배포</button>
                     </div>
-
                     <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
                         <h3 class="font-bold text-xs text-gray-800 border-b pb-2">📋 현재 배포 중인 공지 목록 (삭제 가능)</h3>
                         <div class="max-h-40 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
@@ -404,13 +356,11 @@
                             <div v-if="notices.length === 0" class="text-center py-6 text-gray-400">등록된 공지사항이 없습니다.</div>
                         </div>
                     </div>
-
                     <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
                         <h3 class="font-bold text-xs text-gray-800 border-b pb-2 flex justify-between items-center">
                             <span>👥 회원관리 및 원격 데이터 통제</span>
                             <span class="text-[11px] text-gray-400">등록 회원: {{ allRegisteredUsers.length }}명</span>
                         </h3>
-                        
                         <div class="max-h-36 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
                             <div v-for="u in allRegisteredUsers" :key="u.username" class="p-2.5 flex justify-between items-center text-xs">
                                 <div class="flex items-center space-x-2">
@@ -423,11 +373,11 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </main>
 
+    <!-- 로그인 모달 -->
     <div v-if="isLoginModalOpen" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
         <div class="bg-white rounded-2xl border border-gray-200 p-6 max-w-sm w-full space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -460,30 +410,38 @@
     </footer>
 
     <div class="fixed bottom-3 right-4 z-50 select-none">
-        <button @click="handleAdminNav" class="text-sm opacity-[0.05] hover:opacity-100 transition-all p-1" title="관리자 모드">
-            🔒
-        </button>
+        <button @click="handleAdminNav" class="text-sm opacity-[0.05] hover:opacity-100 transition-all p-1" title="관리자 모드">🔒</button>
     </div>
 </div>
 
 <script>
     const { createApp, ref, computed, nextTick, onMounted } = Vue;
 
-    // ============================================
-    // ✅ Supabase 설정 (본인 키로 교체하세요)
-    // ============================================
     const SUPABASE_URL = 'https://qcveusiwhsnmxyzfmqkq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjdmV1c2l3aHNubXh5emZtcWtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzAyNDYsImV4cCI6MjA5NTcwNjI0Nn0.dCFtObSLK19wKssxaOEENL46nYlDNgHiM97ZkzEE1Sk';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // 토스페이먼츠 SDK 동적 로드 (head에 스크립트 태그 없이 필요할 때만 로드)
+    function loadTossSDK() {
+        return new Promise((resolve, reject) => {
+            if (window.TossPayments) { resolve(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://js.tosspayments.com/v2';
+            s.onload = () => resolve();
+            s.onerror = () => reject(new Error('토스 SDK 로드 실패'));
+            document.head.appendChild(s);
+        });
+    }
+
     createApp({
         setup() {
+            // ── 상태 ──────────────────────────────────────────────
             const currentTab = ref('shop');
             const isAdminAuthenticated = ref(false);
             const adminUsernameInput = ref('');
             const adminPasswordInput = ref('');
-            const searchQuery = ref(''); 
-            const selectedNoticeCategory = ref('전체'); 
+            const searchQuery = ref('');
+            const selectedNoticeCategory = ref('전체');
             const isLoginModalOpen = ref(false);
             const authMode = ref('login');
             const authForm = ref({ username: '', password: '' });
@@ -491,8 +449,9 @@
             const allRegisteredUsers = ref([]);
             const cart = ref([]);
             const activeProduct = ref(null);
+            const myPurchases = ref([]);
             let paymentWidgetInstance = null;
-            const checkoutSummary = ref({ amount: 0, orderName: '', orderId: '' });
+            const checkoutSummary = ref({ amount: 0, orderName: '', orderId: '', productId: null });
             const categories = ref([]);
             const newCategoryName = ref('');
             const editingCategoryId = ref(null);
@@ -504,9 +463,7 @@
             const editProductForm = ref({ name: '', category: '', price: null, description: '' });
             const newNotice = ref({ category: '', title: '', content: '' });
 
-            // ============================================
-            // ✅ Supabase 데이터 로딩
-            // ============================================
+            // ── 데이터 로딩 ───────────────────────────────────────
             const loadAll = async () => {
                 const [{ data: cats }, { data: prods }, { data: nots }, { data: usrs }] = await Promise.all([
                     sb.from('categories').select('*').order('created_at'),
@@ -524,10 +481,49 @@
                 }
             };
 
+            const loadMyPurchases = async () => {
+                if (!userSession.value.id) return;
+                const { data } = await sb.from('purchases').select('*').eq('user_id', userSession.value.id);
+                myPurchases.value = data || [];
+            };
+
+            // ── Computed ──────────────────────────────────────────
+            const visibleCategories = computed(() => categories.value.filter(c => !c.hidden));
+
+            const filteredProducts = computed(() => {
+                let r = products.value.filter(p => {
+                    if (p.hidden) return false;
+                    const cat = categories.value.find(c => c.name === p.category);
+                    return cat ? !cat.hidden : true;
+                });
+                if (searchQuery.value.trim()) {
+                    const q = searchQuery.value.toLowerCase();
+                    r = r.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+                }
+                return r;
+            });
+
+            const filteredNotices = computed(() => {
+                let r = notices.value.filter(n => {
+                    const cat = categories.value.find(c => c.name === n.category);
+                    return cat ? !cat.hidden : true;
+                });
+                if (selectedNoticeCategory.value !== '전체') r = r.filter(n => n.category === selectedNoticeCategory.value);
+                return r;
+            });
+
+            const cartTotalPrice = computed(() => cart.value.reduce((a, i) => a + i.singleTotalPrice, 0));
+
+            // ── 네비게이션 ────────────────────────────────────────
+            const navigateTo = (tab) => { currentTab.value = tab; };
             const triggerSearch = () => { if (currentTab.value !== 'shop') navigateTo('shop'); };
+            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+            const formatPrice = (v) => v ? v.toLocaleString() : 0;
+
+            // ── 인증 ──────────────────────────────────────────────
             const openLoginModal = () => { authMode.value = 'login'; authForm.value = { username: '', password: '' }; isLoginModalOpen.value = true; };
             const closeLoginModal = () => { isLoginModalOpen.value = false; };
-            
+
             const handleRegister = async () => {
                 const uid = authForm.value.username.trim();
                 const upw = authForm.value.password.trim();
@@ -535,11 +531,12 @@
                 const { data: existing } = await sb.from('users').select('id').eq('username', uid).single();
                 if (existing) { alert('이미 존재하는 아이디입니다.'); return; }
                 const { error } = await sb.from('users').insert({ username: uid, password: upw, name: uid });
-                if (error) { alert('오류가 발생했습니다: ' + error.message); return; }
+                if (error) { alert('오류: ' + error.message); return; }
                 allRegisteredUsers.value = (await sb.from('users').select('*')).data || [];
-                alert('🎉 회원가입이 성공적으로 완료되었습니다!');
                 userSession.value = { isLoggedIn: true, name: uid, id: null };
+                localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
                 isLoginModalOpen.value = false;
+                alert('🎉 회원가입이 완료되었습니다!');
             };
 
             const handleLogin = async () => {
@@ -549,72 +546,43 @@
                 const { data: foundUser } = await sb.from('users').select('*').eq('username', uid).eq('password', upw).single();
                 if (foundUser) {
                     userSession.value = { isLoggedIn: true, name: foundUser.username, id: foundUser.id };
+                    localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
                     isLoginModalOpen.value = false;
                     await loadMyPurchases();
                     alert(`✨ 반갑습니다, ${userSession.value.name}님!`);
                 } else {
-                    alert('❌ 정보가 올바르지 않거나 존재하지 않는 회원입니다.');
+                    alert('❌ 아이디 또는 비밀번호가 올바르지 않습니다.');
                 }
             };
-            
-            const logoutUser = () => { userSession.value = { isLoggedIn: false, name: '', id: null }; cart.value = []; alert('로그아웃되었습니다.'); navigateTo('shop'); };
-            
+
+            const logoutUser = () => {
+                userSession.value = { isLoggedIn: false, name: '', id: null };
+                localStorage.removeItem('chagok_session');
+                cart.value = [];
+                alert('로그아웃되었습니다.');
+                navigateTo('shop');
+            };
+
             const kickUser = async (username) => {
-                if (confirm(`${username} 회원을 탈퇴 처리하시겠습니까?`)) {
-                    await sb.from('users').delete().eq('username', username);
-                    allRegisteredUsers.value = (await sb.from('users').select('*')).data || [];
-                    if (userSession.value.name === username) userSession.value = { isLoggedIn: false, name: '', id: null };
+                if (!confirm(`${username} 회원을 탈퇴 처리하시겠습니까?`)) return;
+                await sb.from('users').delete().eq('username', username);
+                allRegisteredUsers.value = (await sb.from('users').select('*')).data || [];
+                if (userSession.value.name === username) {
+                    userSession.value = { isLoggedIn: false, name: '', id: null };
+                    localStorage.removeItem('chagok_session');
                 }
             };
 
-            const visibleCategories = computed(() => {
-                return categories.value.filter(c => !c.hidden);
-            });
-
-            const filteredProducts = computed(() => {
-                let result = products.value.filter(p => {
-                    if (p.hidden) return false;
-                    const catObj = categories.value.find(c => c.name === p.category);
-                    return catObj ? !catObj.hidden : true;
-                });
-                if (searchQuery.value.trim() !== '') {
-                    const query = searchQuery.value.toLowerCase();
-                    result = result.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
-                }
-                return result;
-            });
-
-            const filteredNotices = computed(() => {
-                let result = notices.value.filter(n => {
-                    const catObj = categories.value.find(c => c.name === n.category);
-                    return catObj ? !catObj.hidden : true;
-                });
-                if (selectedNoticeCategory.value === '전체') return result;
-                return result.filter(n => n.category === selectedNoticeCategory.value);
-            });
-
-            const cartTotalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.singleTotalPrice, 0));
-
+            // ── 장바구니 ──────────────────────────────────────────
             const addToCart = () => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
                 cart.value.push({ product: activeProduct.value, singleTotalPrice: activeProduct.value.price });
-                if (confirm('🛒 상품을 장바구니에 담았습니다. 이동할까요?')) navigateTo('cart');
+                if (confirm('🛒 장바구니에 담았습니다. 이동할까요?')) navigateTo('cart');
             };
+            const removeFromCart = (i) => { cart.value.splice(i, 1); };
 
-            const removeFromCart = (index) => { cart.value.splice(index, 1); };
-
-            // 구매 내역
-            const myPurchases = ref([]);
-
-            const loadMyPurchases = async () => {
-                if (!userSession.value.id) return;
-                const { data } = await sb.from('purchases').select('*').eq('user_id', userSession.value.id);
-                myPurchases.value = data || [];
-            };
-
-            const hasPurchased = (productId) => {
-                return myPurchases.value.some(p => p.product_id === productId);
-            };
+            // ── 구매 내역 ─────────────────────────────────────────
+            const hasPurchased = (productId) => myPurchases.value.some(p => p.product_id === productId);
 
             const downloadEbook = (product) => {
                 if (!product.ebook_url) { alert('다운로드 파일이 등록되지 않았습니다.'); return; }
@@ -625,6 +593,7 @@
                 a.click();
             };
 
+            // ── 결제 ──────────────────────────────────────────────
             const proceedToCheckout = async (type) => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
                 let productId = null;
@@ -642,7 +611,6 @@
                 checkoutSummary.value.orderId = orderId;
                 checkoutSummary.value.productId = productId;
 
-                // 결제 시작 전 orders 테이블에 기록
                 await sb.from('orders').insert({
                     order_id: orderId,
                     user_id: userSession.value.id,
@@ -653,88 +621,80 @@
 
                 currentTab.value = 'checkout';
                 await nextTick();
-                initTossWidget();
+                await initTossWidget();
             };
 
-            const initTossWidget = () => {
-                const clientKey = "test_gck_docs_O72KmzN3b1q569zlo7p8gJl3"; 
-                paymentWidgetInstance = PaymentWidget(clientKey, PaymentWidget.ANONYMOUS);
-                paymentWidgetInstance.renderPaymentMethods("#payment-method", { value: checkoutSummary.value.amount }, { variantKey: "DEFAULT" });
-                paymentWidgetInstance.renderAgreement("#agreement", { variantKey: "DEFAULT" });
+            const initTossWidget = async () => {
+                try {
+                    await loadTossSDK();
+                    const tossPayments = window.TossPayments("test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm");
+                    paymentWidgetInstance = tossPayments.widgets({ customerKey: window.TossPayments.ANONYMOUS });
+                    await paymentWidgetInstance.setAmount({ currency: 'KRW', value: checkoutSummary.value.amount });
+                    await paymentWidgetInstance.renderPaymentMethods({ selector: "#payment-method" });
+                    await paymentWidgetInstance.renderAgreement({ selector: "#agreement" });
+                } catch (e) {
+                    alert('결제 모듈 로드 중 오류가 발생했습니다: ' + e.message);
+                    console.error(e);
+                }
             };
 
-            const requestTossPayment = () => {
+            const requestTossPayment = async () => {
                 if (!paymentWidgetInstance) return;
-                paymentWidgetInstance.requestPayment({
-                    orderId: checkoutSummary.value.orderId,
-                    orderName: checkoutSummary.value.orderName,
-                    customerName: userSession.value.name,
-                    successUrl: window.location.origin + window.location.pathname + '?payment=success&orderId=' + checkoutSummary.value.orderId + '&amount=' + checkoutSummary.value.amount,
-                    failUrl: window.location.origin + window.location.pathname + '?payment=fail',
-                });
+                try {
+                    await paymentWidgetInstance.requestPayment({
+                        orderId: checkoutSummary.value.orderId,
+                        orderName: checkoutSummary.value.orderName,
+                        customerName: userSession.value.name,
+                        successUrl: window.location.origin + window.location.pathname + '?payment=success&orderId=' + checkoutSummary.value.orderId + '&amount=' + checkoutSummary.value.amount,
+                        failUrl: window.location.origin + window.location.pathname + '?payment=fail',
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
             };
 
-            // 결제 완료 후 URL 파라미터 처리
+            // ── 결제 완료 처리 ────────────────────────────────────
             const handlePaymentReturn = async () => {
                 const params = new URLSearchParams(window.location.search);
                 const payment = params.get('payment');
                 const orderId = params.get('orderId');
                 const paymentKey = params.get('paymentKey');
                 const amount = parseInt(params.get('amount') || '0');
-
-                // URL 파라미터 즉시 제거
                 window.history.replaceState({}, '', window.location.pathname);
 
                 if (payment === 'success' && orderId && paymentKey) {
-                    // DB에서 주문 조회 (orderId + amount 검증)
-                    const { data: order } = await sb.from('orders')
-                        .select('*')
-                        .eq('order_id', orderId)
-                        .eq('status', 'pending')
-                        .single();
-
+                    const { data: order } = await sb.from('orders').select('*').eq('order_id', orderId).eq('status', 'pending').single();
                     if (!order) { alert('❌ 유효하지 않은 결제입니다.'); return; }
                     if (order.amount !== amount) { alert('❌ 결제 금액이 일치하지 않습니다.'); return; }
-
-                    // paymentKey 중복 사용 확인
                     const { data: dupKey } = await sb.from('orders').select('id').eq('payment_key', paymentKey).single();
                     if (dupKey) { alert('❌ 이미 사용된 결제키입니다.'); return; }
-
-                    // 결제 완료 처리
                     await sb.from('orders').update({ payment_key: paymentKey, status: 'paid' }).eq('order_id', orderId);
-
-                    // 구매 권한 부여
-                    await sb.from('purchases').insert({
-                        user_id: order.user_id,
-                        product_id: order.product_id,
-                        order_id: orderId
-                    });
-
+                    await sb.from('purchases').insert({ user_id: order.user_id, product_id: order.product_id, order_id: orderId });
                     await loadMyPurchases();
-                    alert('🎉 결제가 완료되었습니다! 구매한 전자책을 다운로드할 수 있습니다.');
+                    alert('🎉 결제가 완료되었습니다! 전자책을 다운로드할 수 있습니다.');
                     navigateTo('shop');
-
                 } else if (payment === 'fail') {
                     alert('❌ 결제가 취소되었거나 실패했습니다.');
                     navigateTo('shop');
                 }
             };
 
-            onMounted(async () => {
-                await loadAll();
-                await handlePaymentReturn();
-            });
-
-            // 🛡️ 관리자 검증 시스템 연동 (지정한 아이디와 비밀번호 동시 대조)
-            const checkAdminCredentials = () => { 
-                if (adminUsernameInput.value === 'chagok.heeo' && adminPasswordInput.value === 'juhui0504+!') { 
-                    isAdminAuthenticated.value = true; 
-                    navigateTo('admin'); 
-                } else { 
-                    alert('아이디 또는 비밀번호가 일치하지 않습니다.'); 
-                } 
+            // ── 관리자 ────────────────────────────────────────────
+            const checkAdminCredentials = () => {
+                if (adminUsernameInput.value === 'chagok.heeo' && adminPasswordInput.value === 'juhui0504+!') {
+                    isAdminAuthenticated.value = true;
+                    navigateTo('admin');
+                } else {
+                    alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+                }
             };
+            const handleAdminNav = () => {
+                if (isAdminAuthenticated.value) { navigateTo('admin'); }
+                else { adminUsernameInput.value = ''; adminPasswordInput.value = ''; navigateTo('admin_auth'); }
+            };
+            const logoutAdmin = () => { isAdminAuthenticated.value = false; navigateTo('shop'); };
 
+            // ── 카테고리 ──────────────────────────────────────────
             const createNewCategory = async () => {
                 const name = newCategoryName.value.trim();
                 if (!name) { alert('카테고리 명칭을 입력해주세요.'); return; }
@@ -742,163 +702,136 @@
                 const { error } = await sb.from('categories').insert({ name, hidden: false });
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
-                alert(`📂 [${name}] 카테고리가 새롭게 추가되었습니다.`);
+                alert(`📂 [${name}] 카테고리가 추가되었습니다.`);
                 newCategoryName.value = '';
             };
-
-            const startEditCategory = (cat) => {
-                editingCategoryId.value = cat.id;
-                editCategoryNameInput.value = cat.name;
-            };
-
+            const startEditCategory = (cat) => { editingCategoryId.value = cat.id; editCategoryNameInput.value = cat.name; };
             const saveCategoryName = async (cat) => {
                 const newName = editCategoryNameInput.value.trim();
                 if (!newName) return;
-                if (categories.value.some(c => c.id !== cat.id && c.name === newName)) { alert('중복된 카테고리 이름이 존재합니다.'); return; }
+                if (categories.value.some(c => c.id !== cat.id && c.name === newName)) { alert('중복된 이름입니다.'); return; }
                 const oldName = cat.name;
                 await sb.from('categories').update({ name: newName }).eq('id', cat.id);
                 await sb.from('products').update({ category: newName }).eq('category', oldName);
                 await sb.from('notices').update({ category: newName }).eq('category', oldName);
                 await loadAll();
-                alert(`명칭이 [${oldName}] ➔ [${newName}]으로 일괄 업데이트되었습니다.`);
+                alert(`[${oldName}] ➔ [${newName}] 업데이트 완료`);
                 editingCategoryId.value = null;
             };
-
             const toggleCategoryVisibility = async (cat) => {
                 const newHidden = !cat.hidden;
                 await sb.from('categories').update({ hidden: newHidden }).eq('id', cat.id);
                 await loadAll();
-                const msg = newHidden ? '숨김(비노출) 처리되어 하위 상품/공지가 사용자 단에서 숨겨집니다.' : '정상 노출 처리되었습니다.';
-                alert(`[${cat.name}] 카테고리가 ${msg}`);
+                alert(`[${cat.name}] ${newHidden ? '숨김 처리되었습니다.' : '노출 처리되었습니다.'}`);
             };
 
+            // ── 파일 업로드 ───────────────────────────────────────
             const uploadFileStream = async (event, targetType) => {
                 const files = event.target.files;
                 if (!files || files.length === 0) return;
-                
                 if (targetType === 'product_main') {
                     const file = files[0];
-                    const ext = file.name.split('.').pop();
-                    const path = `images/${Date.now()}_main.${ext}`;
+                    const path = `images/${Date.now()}_main.${file.name.split('.').pop()}`;
                     const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
-                    if (error) { alert('이미지 업로드 실패: ' + error.message); return; }
-                    const { data } = sb.storage.from('ebooks').getPublicUrl(path);
-                    newProduct.value.image = data.publicUrl;
+                    if (error) { alert('업로드 실패: ' + error.message); return; }
+                    newProduct.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
                 } else if (targetType === 'product_detail') {
                     newProduct.value.detailImages = [];
                     for (let i = 0; i < files.length; i++) {
                         const file = files[i];
-                        const ext = file.name.split('.').pop();
-                        const path = `images/${Date.now()}_detail_${i}.${ext}`;
+                        const path = `images/${Date.now()}_detail_${i}.${file.name.split('.').pop()}`;
                         const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
-                        if (!error) {
-                            const { data } = sb.storage.from('ebooks').getPublicUrl(path);
-                            newProduct.value.detailImages.push(data.publicUrl);
-                        }
+                        if (!error) newProduct.value.detailImages.push(sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl);
                     }
                 } else if (targetType === 'ebook') {
                     const file = files[0];
-                    const ext = file.name.split('.').pop();
                     const path = `ebooks/${Date.now()}_${file.name}`;
                     const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
-                    if (error) { alert('전자책 업로드 실패: ' + error.message); return; }
-                    const { data } = sb.storage.from('ebooks').getPublicUrl(path);
-                    newProduct.value.ebook_url = data.publicUrl;
+                    if (error) { alert('업로드 실패: ' + error.message); return; }
+                    newProduct.value.ebook_url = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
                     alert('✅ 전자책 파일이 업로드되었습니다.');
                 }
             };
 
+            // ── 상품 관리 ─────────────────────────────────────────
             const addProduct = async () => {
-                if (!newProduct.value.name || !newProduct.value.price) { alert('상품명과 금액은 필수 입력 사항입니다.'); return; }
+                if (!newProduct.value.name || !newProduct.value.price) { alert('상품명과 금액은 필수입니다.'); return; }
                 const { error } = await sb.from('products').insert({
-                    name: newProduct.value.name,
-                    category: newProduct.value.category,
-                    price: newProduct.value.price,
-                    description: newProduct.value.description,
-                    image: newProduct.value.image,
-                    detail_images: newProduct.value.detailImages,
-                    hidden: false,
-                    ebook_url: newProduct.value.ebook_url || ''
+                    name: newProduct.value.name, category: newProduct.value.category,
+                    price: newProduct.value.price, description: newProduct.value.description,
+                    image: newProduct.value.image, detail_images: newProduct.value.detailImages,
+                    hidden: false, ebook_url: newProduct.value.ebook_url || ''
                 });
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
-                alert('📦 스토어에 새로운 상품이 배포/진열되었습니다.');
+                alert('📦 상품이 등록되었습니다.');
                 newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, description: '', image: '', detailImages: [], hidden: false, ebook_url: '' };
                 navigateTo('shop');
             };
-
-            const startEditProduct = (product) => {
-                editingProductId.value = product.id;
-                editProductForm.value = { ...product };
-            };
-
+            const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p }; };
             const saveProductEdit = async () => {
                 const { error } = await sb.from('products').update({
-                    name: editProductForm.value.name,
-                    category: editProductForm.value.category,
-                    price: editProductForm.value.price,
-                    description: editProductForm.value.description
+                    name: editProductForm.value.name, category: editProductForm.value.category,
+                    price: editProductForm.value.price, description: editProductForm.value.description
                 }).eq('id', editingProductId.value);
                 if (error) { alert('오류: ' + error.message); return; }
-                await loadAll();
-                alert('수정이 완료되었습니다.');
-                editingProductId.value = null;
+                await loadAll(); alert('수정 완료'); editingProductId.value = null;
             };
-
             const deleteProduct = async (id) => {
-                if (confirm('해당 상품을 진열대에서 삭제할까요?')) {
-                    await sb.from('products').delete().eq('id', id);
-                    await loadAll();
-                }
+                if (confirm('삭제하시겠습니까?')) { await sb.from('products').delete().eq('id', id); await loadAll(); }
             };
-
             const toggleProductVisibility = async (product) => {
                 const newHidden = !product.hidden;
                 await sb.from('products').update({ hidden: newHidden }).eq('id', product.id);
                 await loadAll();
-                const statusText = newHidden ? '숨김(비노출) 처리' : '진열대 정상 노출';
-                alert(`"${product.name}" 상품이 ${statusText} 되었습니다.`);
+                alert(`"${product.name}" ${newHidden ? '숨김 처리' : '진열 처리'}되었습니다.`);
             };
 
+            // ── 공지 ──────────────────────────────────────────────
             const addNotice = async () => {
                 if (!newNotice.value.title || !newNotice.value.content) return;
                 const { error } = await sb.from('notices').insert({ ...newNotice.value });
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
-                alert(`📢 공지사항이 [${newNotice.value.category}] 하위에 매칭 배포되었습니다.`);
+                alert(`📢 공지사항이 배포되었습니다.`);
                 newNotice.value = { category: categories.value[0]?.name || '', title: '', content: '' };
                 navigateTo('notice');
             };
-
             const deleteNotice = async (id) => {
-                if (confirm('해당 공지사항을 삭제하시겠습니까?')) {
-                    await sb.from('notices').delete().eq('id', id);
-                    await loadAll();
-                    alert('공지사항이 삭제되었습니다.');
-                }
+                if (confirm('삭제하시겠습니까?')) { await sb.from('notices').delete().eq('id', id); await loadAll(); }
             };
 
-            const navigateTo = (tab) => { currentTab.value = tab; };
-            
-            const handleAdminNav = () => { 
-                if (isAdminAuthenticated.value) { 
-                    navigateTo('admin'); 
-                } else { 
-                    adminUsernameInput.value = ''; 
-                    adminPasswordInput.value = ''; 
-                    navigateTo('admin_auth'); 
-                } 
-            };
-            
-            const logoutAdmin = () => { isAdminAuthenticated.value = false; navigateTo('shop'); };
-            const formatPrice = (v) => v ? v.toLocaleString() : 0;
-            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+            // ── onMounted ─────────────────────────────────────────
+            onMounted(async () => {
+                // 세션 복원
+                try {
+                    const saved = localStorage.getItem('chagok_session');
+                    if (saved) userSession.value = JSON.parse(saved);
+                } catch (e) { localStorage.removeItem('chagok_session'); }
 
+                await loadAll();
+                if (userSession.value.isLoggedIn) await loadMyPurchases();
+                await handlePaymentReturn();
+            });
+
+            // ── return ────────────────────────────────────────────
             return {
-                currentTab, isAdminAuthenticated, adminUsernameInput, adminPasswordInput, searchQuery, selectedNoticeCategory, isLoginModalOpen, authMode, authForm, userSession, allRegisteredUsers, cart, activeProduct, checkoutSummary, products, notices, newProduct, editingProductId, editProductForm, newNotice, cartTotalPrice,
-                categories, newCategoryName, editingCategoryId, editCategoryNameInput, visibleCategories, createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
-                triggerSearch, openLoginModal, closeLoginModal, handleRegister, handleLogin, logoutUser, kickUser, uploadFileStream, addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility, addNotice, deleteNotice, goToDetailView, navigateTo, handleAdminNav, checkAdminCredentials, logoutAdmin, addToCart, removeFromCart, proceedToCheckout, requestTossPayment, filteredProducts, filteredNotices, formatPrice,
-                myPurchases, hasPurchased, downloadEbook
+                currentTab, isAdminAuthenticated, adminUsernameInput, adminPasswordInput,
+                searchQuery, selectedNoticeCategory, isLoginModalOpen, authMode, authForm,
+                userSession, allRegisteredUsers, cart, activeProduct, checkoutSummary,
+                products, notices, newProduct, editingProductId, editProductForm, newNotice,
+                cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
+                myPurchases,
+                visibleCategories, filteredProducts, filteredNotices,
+                navigateTo, triggerSearch, goToDetailView, formatPrice,
+                openLoginModal, closeLoginModal, handleRegister, handleLogin, logoutUser, kickUser,
+                addToCart, removeFromCart, hasPurchased, downloadEbook,
+                proceedToCheckout, requestTossPayment,
+                checkAdminCredentials, handleAdminNav, logoutAdmin,
+                createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
+                uploadFileStream,
+                addProduct, startEditProduct, saveProductEdit, deleteProduct, toggleProductVisibility,
+                addNotice, deleteNotice
             };
         }
     }).mount('#app');
