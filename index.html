@@ -624,18 +624,27 @@
                 userSession.value = { isLoggedIn: false, name: '', id: null };
                 localStorage.removeItem('chagok_session');
                 cart.value = [];
+                myPurchases.value = [];
                 alert('로그아웃되었습니다.');
                 navigateTo('shop');
             };
 
             const kickUser = async (username) => {
                 if (!confirm(`${username} 회원을 탈퇴 처리하시겠습니까?`)) return;
+                // 해당 유저의 purchases, orders도 함께 삭제
+                const { data: targetUser } = await sb.from('users').select('id').eq('username', username).single();
+                if (targetUser) {
+                    await sb.from('purchases').delete().eq('user_id', targetUser.id);
+                    await sb.from('orders').delete().eq('user_id', targetUser.id);
+                }
                 await sb.from('users').delete().eq('username', username);
                 allRegisteredUsers.value = (await sb.from('users').select('*')).data || [];
                 if (userSession.value.name === username) {
                     userSession.value = { isLoggedIn: false, name: '', id: null };
+                    myPurchases.value = [];
                     localStorage.removeItem('chagok_session');
                 }
+                alert(`${username} 회원이 탈퇴 처리되었습니다.`);
             };
 
             // ── 장바구니 ──────────────────────────────────────────
