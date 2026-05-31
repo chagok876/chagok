@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chagok.collects 관리자</title>
+    <script src="https://cdn.tailwindcss.com?v=3.4.1"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #FBF9F6;
+            color: #4A443C;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<div id="app" v-cloak>
+
+    <!-- 로그인 화면 -->
+    <div v-if="!isAuthenticated" class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm max-w-sm w-full space-y-4">
+            <div class="text-center mb-2">
+                <p class="text-xs text-gray-400 tracking-widest uppercase mb-1">chagok.collects</p>
+                <h1 class="text-lg font-black text-gray-800">관리자 로그인</h1>
+            </div>
+            <form @submit.prevent="checkAdminCredentials" class="space-y-3">
+                <input v-model="adminUsernameInput" type="text" placeholder="관리자 아이디" class="w-full text-center border p-3 rounded-xl bg-[#FAF4EA] text-xs focus:outline-none focus:border-[#5C5245] transition-colors">
+                <input v-model="adminPasswordInput" type="password" placeholder="비밀번호" class="w-full text-center border p-3 rounded-xl bg-[#FAF4EA] text-xs focus:outline-none focus:border-[#5C5245] transition-colors">
+                <button type="submit" class="w-full py-3 bg-[#4A443C] text-white text-xs font-bold rounded-xl hover:bg-black transition-colors">로그인</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 관리자 대시보드 -->
+    <div v-else class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+
+        <!-- 헤더 -->
+        <div class="bg-white p-6 rounded-2xl border border-red-100 flex justify-between items-center shadow-sm">
+            <div>
+                <h1 class="text-xl font-black text-red-900">chagok.collects 관리자 대시보드</h1>
+                <p class="text-xs text-gray-400 mt-1">카테고리 · 상품 · 공지사항 · 회원 통합 관제</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="https://chagok876.github.io/chagok/" target="_blank" class="text-xs text-blue-600 hover:underline font-bold">사이트 보기 ↗</a>
+                <button @click="logout" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded-xl text-xs font-bold transition">로그아웃</button>
+            </div>
+        </div>
+
+        <!-- 카테고리 관리 -->
+        <div class="bg-[#FAF4EA] p-5 rounded-2xl border border-[#EAE1D4] text-xs space-y-4">
+            <h2 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">📂 카테고리 관리</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-4 rounded-xl border border-gray-200 space-y-2">
+                    <label class="block font-bold text-gray-700">➕ 새 카테고리 생성</label>
+                    <div class="flex gap-2">
+                        <input v-model="newCategoryName" type="text" placeholder="카테고리명 입력" class="flex-grow p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs">
+                        <button @click="createNewCategory" class="px-3 py-2 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition shrink-0">추가</button>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-200 md:col-span-2 space-y-2">
+                    <label class="block font-bold text-gray-700">📋 카테고리 목록</label>
+                    <div class="max-h-40 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
+                        <div v-for="cat in categories" :key="cat.id" class="p-2.5 flex flex-col sm:flex-row justify-between sm:items-center gap-2" :class="{'opacity-60 bg-gray-100': cat.hidden}">
+                            <div class="flex items-center space-x-2 flex-grow">
+                                <span v-if="cat.hidden" class="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0">🚫 숨김</span>
+                                <span v-else class="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded font-bold shrink-0">🟢 노출</span>
+                                <div v-if="editingCategoryId !== cat.id" class="font-bold text-gray-800 text-xs">{{ cat.name }}</div>
+                                <div v-else class="flex items-center gap-1 flex-grow max-w-xs">
+                                    <input v-model="editCategoryNameInput" type="text" class="p-1 border rounded bg-white text-xs w-full">
+                                    <button @click="saveCategoryName(cat)" class="px-2 py-1 bg-green-600 text-white text-[10px] rounded font-bold">변경</button>
+                                    <button @click="editingCategoryId = null" class="px-2 py-1 bg-gray-400 text-white text-[10px] rounded font-bold">취소</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-1.5 shrink-0 justify-end">
+                                <button v-if="editingCategoryId !== cat.id" @click="startEditCategory(cat)" class="px-2 py-1 bg-gray-100 border text-gray-600 rounded text-[10px] font-bold hover:bg-gray-200">이름 수정</button>
+                                <button @click="toggleCategoryVisibility(cat)" :class="cat.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'" class="px-2 py-1 rounded text-[10px] font-bold transition">{{ cat.hidden ? '🔓 노출하기' : '🔒 숨기기' }}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+
+            <!-- 신규 상품 등록 -->
+            <div class="p-5 bg-[#FAF4EA] rounded-2xl border border-[#EAE1D4] space-y-3">
+                <h2 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">📦 신규 상품 등록</h2>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">상품명</label>
+                    <input v-model="newProduct.name" type="text" placeholder="상품명 입력" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">카테고리</label>
+                    <select v-model="newProduct.category" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">판매가 (원)</label>
+                    <input v-model.number="newProduct.price" type="number" placeholder="금액 입력" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">상품 설명</label>
+                    <textarea v-model="newProduct.description" placeholder="상품 설명" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
+                </div>
+                <div class="space-y-1 bg-white p-3 rounded-xl border border-gray-200">
+                    <label class="block font-bold text-[11px] text-gray-500">■ 대표 이미지</label>
+                    <input type="file" @change="e => uploadFileStream(e, 'product_main')" accept="image/*" class="w-full text-[10px] pt-1">
+                </div>
+                <div class="space-y-1 bg-white p-3 rounded-xl border border-amber-200">
+                    <label class="block font-bold text-[11px] text-amber-800">■ 상세 이미지 (다중)</label>
+                    <input type="file" @change="e => uploadFileStream(e, 'product_detail')" accept="image/*" multiple class="w-full text-[10px] pt-1">
+                </div>
+                <button @click="addProduct" class="w-full py-3 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition mt-2">상품 등록</button>
+            </div>
+
+            <!-- 상품 수정/삭제 -->
+            <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-4">
+                <h2 class="font-bold text-sm text-gray-800 border-b pb-2 flex items-center justify-between">
+                    <span>📝 상품 관리</span>
+                    <span class="text-[11px] font-normal text-gray-400">총 {{ products.length }}개</span>
+                </h2>
+                <div class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+                    <div v-for="p in products" :key="p.id" class="p-3 bg-[#FBF9F6] rounded-xl border border-gray-100 space-y-2" :class="{'opacity-60 bg-gray-100': p.hidden}">
+                        <div v-if="editingProductId !== p.id" class="flex justify-between items-start">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                    <span class="bg-gray-200 text-gray-700 text-[9px] px-1.5 py-0.5 rounded font-bold">[{{ p.category }}]</span>
+                                    <span v-if="p.hidden" class="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded font-bold">🚫 숨김</span>
+                                    <span v-else class="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded font-bold">🟢 진열중</span>
+                                </div>
+                                <p class="font-bold text-gray-800 text-xs mt-1">{{ p.name }}</p>
+                                <p class="text-amber-800 font-bold text-[11px]">{{ formatPrice(p.price) }}원</p>
+                            </div>
+                            <div class="flex flex-col space-y-1 shrink-0 items-end">
+                                <div class="flex space-x-1">
+                                    <button @click="startEditProduct(p)" class="px-2 py-1 bg-gray-200 text-gray-700 rounded text-[11px] font-bold">수정</button>
+                                    <button @click="deleteProduct(p.id)" class="px-2 py-1 bg-red-50 text-red-600 rounded text-[11px] font-bold hover:bg-red-100">삭제</button>
+                                </div>
+                                <button @click="toggleProductVisibility(p)" :class="p.hidden ? 'bg-amber-600 text-white' : 'bg-gray-500 text-white'" class="px-2 py-1 rounded text-[10px] font-bold w-full text-center transition">{{ p.hidden ? '🔓 진열하기' : '🔒 숨기기' }}</button>
+                            </div>
+                        </div>
+                        <div v-else class="space-y-2 bg-amber-50/50 p-2 rounded-lg border border-amber-200">
+                            <input v-model="editProductForm.name" type="text" class="w-full p-1.5 border rounded bg-white text-xs">
+                            <select v-model="editProductForm.category" class="w-full p-1.5 border rounded bg-white text-xs">
+                                <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                            </select>
+                            <input v-model.number="editProductForm.price" type="number" class="w-full p-1.5 border rounded bg-white text-xs">
+                            <textarea v-model="editProductForm.description" class="w-full p-1.5 border rounded bg-white text-xs" rows="2"></textarea>
+                            <div class="bg-white p-2 rounded border border-gray-200 space-y-1">
+                                <label class="block text-[10px] font-bold text-gray-500">■ 대표 이미지 교체</label>
+                                <div v-if="editProductForm.image" class="w-full h-20 overflow-hidden rounded mb-1">
+                                    <img :src="editProductForm.image" class="w-full h-full object-cover">
+                                </div>
+                                <input type="file" @change="e => uploadEditProductImage(e, 'main')" accept="image/*" class="w-full text-[10px]">
+                            </div>
+                            <div class="bg-white p-2 rounded border border-amber-200 space-y-1">
+                                <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (다중)</label>
+                                <div v-if="editProductForm.detailImages && editProductForm.detailImages.length > 0" class="flex gap-1 flex-wrap mb-1">
+                                    <img v-for="(img, i) in editProductForm.detailImages" :key="i" :src="img" class="w-12 h-12 object-cover rounded border">
+                                </div>
+                                <input type="file" @change="e => uploadEditProductImage(e, 'detail')" accept="image/*" multiple class="w-full text-[10px]">
+                            </div>
+                            <div class="flex justify-end space-x-1">
+                                <button @click="saveProductEdit" class="px-2 py-1 bg-green-600 text-white rounded text-[11px] font-bold">저장</button>
+                                <button @click="editingProductId = null" class="px-2 py-1 bg-gray-400 text-white rounded text-[11px] font-bold">취소</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 공지 + 회원 -->
+            <div class="space-y-4">
+                <!-- 공지 등록 -->
+                <div class="p-5 bg-[#FAF4EA] rounded-2xl border border-[#EAE1D4] space-y-2.5">
+                    <h2 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">📢 공지사항 등록</h2>
+                    <select v-model="newNotice.category" class="w-full p-2 border rounded-xl bg-white focus:outline-none">
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                    </select>
+                    <input v-model="newNotice.title" type="text" placeholder="공지 제목" class="w-full p-2 border rounded-xl bg-white focus:outline-none">
+                    <textarea v-model="newNotice.content" placeholder="공지 내용" class="w-full p-2 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
+                    <div class="space-y-1 bg-blue-50 p-3 rounded-xl border border-blue-200">
+                        <label class="block font-bold text-[11px] text-blue-800">📎 파일 첨부 (PDF 등)</label>
+                        <input type="file" @change="uploadNoticeFile" accept=".pdf,.zip,.epub,.docx" class="w-full text-[10px] pt-1">
+                        <p v-if="newNotice.file_url" class="text-[10px] text-green-600 font-bold mt-1">✅ 파일 업로드 완료</p>
+                    </div>
+                    <button @click="addNotice" class="w-full py-2 bg-gray-700 text-white font-bold rounded-xl hover:bg-black transition">공지 배포</button>
+                </div>
+
+                <!-- 공지 목록 -->
+                <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
+                    <h2 class="font-bold text-xs text-gray-800 border-b pb-2">📋 공지 목록</h2>
+                    <div class="max-h-48 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
+                        <div v-for="n in notices" :key="n.id" class="p-2 text-[11px] space-y-1.5">
+                            <div v-if="editingNoticeId !== n.id" class="flex justify-between items-start gap-2">
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center space-x-1">
+                                        <span class="bg-amber-100 text-amber-900 text-[9px] px-1 rounded font-bold">{{ n.category }}</span>
+                                        <p class="font-bold text-gray-700 line-clamp-1">{{ n.title }}</p>
+                                    </div>
+                                    <p class="text-gray-400 line-clamp-1">{{ n.content }}</p>
+                                    <p v-if="n.file_url" class="text-blue-500 text-[9px]">📎 파일 첨부됨</p>
+                                </div>
+                                <div class="flex gap-1 shrink-0">
+                                    <button @click="startEditNotice(n)" class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200 font-bold text-[10px]">수정</button>
+                                    <button @click="deleteNotice(n.id)" class="px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 font-bold text-[10px]">삭제</button>
+                                </div>
+                            </div>
+                            <div v-else class="space-y-1.5 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                                <select v-model="editNoticeForm.category" class="w-full p-1.5 border rounded bg-white text-[10px]">
+                                    <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+                                </select>
+                                <input v-model="editNoticeForm.title" type="text" class="w-full p-1.5 border rounded bg-white text-[10px]">
+                                <textarea v-model="editNoticeForm.content" class="w-full p-1.5 border rounded bg-white text-[10px]" rows="2"></textarea>
+                                <div class="space-y-1 bg-white p-2 rounded border border-blue-200">
+                                    <label class="block text-[10px] text-blue-700 font-bold">📎 파일 교체 (선택)</label>
+                                    <input type="file" @change="uploadEditNoticeFile" accept=".pdf,.zip,.epub,.docx" class="w-full text-[10px]">
+                                    <p v-if="editNoticeForm.file_url" class="text-[9px] text-green-600 font-bold">✅ 파일 있음</p>
+                                </div>
+                                <div class="flex justify-end gap-1">
+                                    <button @click="saveNoticeEdit" class="px-2 py-1 bg-green-600 text-white rounded text-[10px] font-bold">저장</button>
+                                    <button @click="editingNoticeId = null" class="px-2 py-1 bg-gray-400 text-white rounded text-[10px] font-bold">취소</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="notices.length === 0" class="text-center py-6 text-gray-400">등록된 공지사항이 없습니다.</div>
+                    </div>
+                </div>
+
+                <!-- 회원 관리 -->
+                <div class="p-5 bg-white rounded-2xl border border-gray-200 space-y-3">
+                    <h2 class="font-bold text-xs text-gray-800 border-b pb-2 flex justify-between items-center">
+                        <span>👥 회원 관리</span>
+                        <span class="text-[11px] text-gray-400">총 {{ allUsers.length }}명</span>
+                    </h2>
+                    <div class="max-h-48 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
+                        <div v-for="u in allUsers" :key="u.id" class="p-2.5 flex justify-between items-center text-xs">
+                            <div class="space-y-0.5">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                    <span class="font-bold text-gray-700">{{ u.name || u.username }}</span>
+                                </div>
+                                <p class="text-[10px] text-gray-400 pl-4">{{ u.username }}</p>
+                            </div>
+                            <button @click="kickUser(u)" class="px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 text-[10px] font-bold">탈퇴</button>
+                        </div>
+                        <div v-if="allUsers.length === 0" class="text-center py-6 text-gray-400 text-[11px]">가입된 회원이 없습니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+
+    const SUPABASE_URL = 'https://kkczofcqygctlyzaewuc.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtrY3pvZmNxeWdjdGx5emFld3VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzY2NjAsImV4cCI6MjA5NTcxMjY2MH0.0vvRJnXQ_0vi6f7hxmZZjgRQ7dUiqumVKYzl14hZuEM';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    createApp({
+        setup() {
+            const isAuthenticated = ref(false);
+            const adminUsernameInput = ref('');
+            const adminPasswordInput = ref('');
+            const categories = ref([]);
+            const products = ref([]);
+            const notices = ref([]);
+            const allUsers = ref([]);
+            const newCategoryName = ref('');
+            const editingCategoryId = ref(null);
+            const editCategoryNameInput = ref('');
+            const newProduct = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
+            const editingProductId = ref(null);
+            const editProductForm = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
+            const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
+            const editingNoticeId = ref(null);
+            const editNoticeForm = ref({ category: '', title: '', content: '', file_url: '' });
+
+            const loadAll = async () => {
+                const [{ data: cats }, { data: prods }, { data: nots }, { data: usrs }] = await Promise.all([
+                    sb.from('categories').select('*').order('created_at'),
+                    sb.from('products').select('*').order('created_at', { ascending: false }),
+                    sb.from('notices').select('*').order('created_at', { ascending: false }),
+                    sb.from('users').select('*').order('created_at')
+                ]);
+                categories.value = (cats || []).map(c => ({ ...c, hidden: c.hidden || false }));
+                products.value = (prods || []).map(p => ({ ...p, detailImages: p.detail_images || [], hidden: p.hidden || false }));
+                notices.value = nots || [];
+                allUsers.value = usrs || [];
+                if (categories.value.length > 0) {
+                    newProduct.value.category = categories.value[0].name;
+                    newNotice.value.category = categories.value[0].name;
+                }
+            };
+
+            const checkAdminCredentials = () => {
+                if (adminUsernameInput.value === 'chagok.heeo' && adminPasswordInput.value === 'juhui0504+!') {
+                    isAuthenticated.value = true;
+                    sessionStorage.setItem('chagok_admin', 'true');
+                    loadAll();
+                } else {
+                    alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+                }
+            };
+
+            const logout = () => {
+                isAuthenticated.value = false;
+                sessionStorage.removeItem('chagok_admin');
+            };
+
+            const formatPrice = (v) => v ? v.toLocaleString() : 0;
+
+            // 카테고리
+            const createNewCategory = async () => {
+                const name = newCategoryName.value.trim();
+                if (!name) { alert('카테고리명을 입력해주세요.'); return; }
+                if (categories.value.some(c => c.name === name)) { alert('이미 존재하는 카테고리입니다.'); return; }
+                const { error } = await sb.from('categories').insert({ name, hidden: false });
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll();
+                alert(`[${name}] 카테고리가 추가되었습니다.`);
+                newCategoryName.value = '';
+            };
+            const startEditCategory = (cat) => { editingCategoryId.value = cat.id; editCategoryNameInput.value = cat.name; };
+            const saveCategoryName = async (cat) => {
+                const newName = editCategoryNameInput.value.trim();
+                if (!newName) return;
+                if (categories.value.some(c => c.id !== cat.id && c.name === newName)) { alert('중복된 이름입니다.'); return; }
+                const oldName = cat.name;
+                await sb.from('categories').update({ name: newName }).eq('id', cat.id);
+                await sb.from('products').update({ category: newName }).eq('category', oldName);
+                await sb.from('notices').update({ category: newName }).eq('category', oldName);
+                await loadAll();
+                alert(`[${oldName}] → [${newName}] 변경 완료`);
+                editingCategoryId.value = null;
+            };
+            const toggleCategoryVisibility = async (cat) => {
+                await sb.from('categories').update({ hidden: !cat.hidden }).eq('id', cat.id);
+                await loadAll();
+            };
+
+            // 상품
+            const uploadFileStream = async (event, targetType) => {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                if (targetType === 'product_main') {
+                    const file = files[0];
+                    const path = `images/${Date.now()}_main.${file.name.split('.').pop()}`;
+                    const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                    if (error) { alert('업로드 실패: ' + error.message); return; }
+                    newProduct.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                } else if (targetType === 'product_detail') {
+                    newProduct.value.detailImages = [];
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const path = `images/${Date.now()}_detail_${i}.${file.name.split('.').pop()}`;
+                        const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                        if (!error) newProduct.value.detailImages.push(sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl);
+                    }
+                }
+            };
+            const addProduct = async () => {
+                if (!newProduct.value.name || !newProduct.value.price) { alert('상품명과 금액은 필수입니다.'); return; }
+                const { error } = await sb.from('products').insert({
+                    name: newProduct.value.name, category: newProduct.value.category,
+                    price: newProduct.value.price, description: newProduct.value.description,
+                    image: newProduct.value.image, detail_images: newProduct.value.detailImages,
+                    hidden: false, ebook_url: ''
+                });
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll();
+                alert('상품이 등록되었습니다.');
+                newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, description: '', image: '', detailImages: [] };
+            };
+            const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p, detailImages: p.detailImages || [] }; };
+            const uploadEditProductImage = async (event, type) => {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                if (type === 'main') {
+                    const file = files[0];
+                    const path = `images/${Date.now()}_edit_main.${file.name.split('.').pop()}`;
+                    const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                    if (error) { alert('업로드 실패: ' + error.message); return; }
+                    editProductForm.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                } else if (type === 'detail') {
+                    editProductForm.value.detailImages = [];
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const path = `images/${Date.now()}_edit_detail_${i}.${file.name.split('.').pop()}`;
+                        const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                        if (!error) editProductForm.value.detailImages.push(sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl);
+                    }
+                }
+            };
+            const saveProductEdit = async () => {
+                const { error } = await sb.from('products').update({
+                    name: editProductForm.value.name, category: editProductForm.value.category,
+                    price: editProductForm.value.price, description: editProductForm.value.description,
+                    image: editProductForm.value.image, detail_images: editProductForm.value.detailImages || []
+                }).eq('id', editingProductId.value);
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll(); alert('수정 완료'); editingProductId.value = null;
+            };
+            const deleteProduct = async (id) => {
+                if (confirm('삭제하시겠습니까?')) { await sb.from('products').delete().eq('id', id); await loadAll(); }
+            };
+            const toggleProductVisibility = async (p) => {
+                await sb.from('products').update({ hidden: !p.hidden }).eq('id', p.id);
+                await loadAll();
+                alert(`"${p.name}" ${!p.hidden ? '숨김' : '진열'} 처리되었습니다.`);
+            };
+
+            // 공지
+            const uploadNoticeFile = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const path = `notice-files/${Date.now()}.${file.name.split('.').pop()}`;
+                const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                if (error) { alert('업로드 실패: ' + error.message); return; }
+                newNotice.value.file_url = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+                alert('✅ 파일 업로드 완료');
+            };
+            const addNotice = async () => {
+                if (!newNotice.value.title || !newNotice.value.content) return;
+                const { error } = await sb.from('notices').insert({ ...newNotice.value });
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll();
+                alert('공지사항이 배포되었습니다.');
+                newNotice.value = { category: categories.value[0]?.name || '', title: '', content: '', file_url: '' };
+            };
+            const startEditNotice = (n) => { editingNoticeId.value = n.id; editNoticeForm.value = { ...n }; };
+            const uploadEditNoticeFile = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const path = `notice-files/${Date.now()}.${file.name.split('.').pop()}`;
+                const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
+                if (error) { alert('업로드 실패: ' + error.message); return; }
+                editNoticeForm.value.file_url = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
+            };
+            const saveNoticeEdit = async () => {
+                const { error } = await sb.from('notices').update({
+                    category: editNoticeForm.value.category, title: editNoticeForm.value.title,
+                    content: editNoticeForm.value.content, file_url: editNoticeForm.value.file_url
+                }).eq('id', editingNoticeId.value);
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll(); alert('수정 완료'); editingNoticeId.value = null;
+            };
+            const deleteNotice = async (id) => {
+                if (confirm('삭제하시겠습니까?')) { await sb.from('notices').delete().eq('id', id); await loadAll(); }
+            };
+
+            // 회원
+            const kickUser = async (u) => {
+                if (!confirm(`${u.name || u.username} 회원을 탈퇴 처리하시겠습니까?`)) return;
+                await sb.from('purchases').delete().eq('user_id', u.id);
+                await sb.from('orders').delete().eq('user_id', u.id);
+                await sb.from('users').delete().eq('id', u.id);
+                await loadAll();
+                alert('탈퇴 처리되었습니다.');
+            };
+
+            onMounted(() => {
+                if (sessionStorage.getItem('chagok_admin') === 'true') {
+                    isAuthenticated.value = true;
+                    loadAll();
+                }
+            });
+
+            return {
+                isAuthenticated, adminUsernameInput, adminPasswordInput,
+                categories, products, notices, allUsers,
+                newCategoryName, editingCategoryId, editCategoryNameInput,
+                newProduct, editingProductId, editProductForm,
+                newNotice, editingNoticeId, editNoticeForm,
+                checkAdminCredentials, logout, formatPrice,
+                createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
+                uploadFileStream, addProduct, startEditProduct, uploadEditProductImage, saveProductEdit, deleteProduct, toggleProductVisibility,
+                uploadNoticeFile, addNotice, startEditNotice, uploadEditNoticeFile, saveNoticeEdit, deleteNotice,
+                kickUser
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
