@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
         body {
             background-color: #FBF9F6;
@@ -134,6 +135,34 @@
                         </div>
                     </div>
                 </div>
+                <!-- 구매 후기 -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-black text-gray-700 tracking-wider uppercase">⭐ 구매 후기</h3>
+                    <!-- 후기 작성 (구매자만) -->
+                    <div v-if="hasPurchased(activeProduct.id) && userSession.isLoggedIn" class="bg-[#FAF4EA] p-4 rounded-xl border border-[#EAE1D4] space-y-3">
+                        <p class="text-[11px] font-bold text-gray-600">후기 작성</p>
+                        <div class="flex gap-1">
+                            <button v-for="s in 5" :key="s" @click="newReview.rating = s" class="text-xl transition" :class="s <= newReview.rating ? 'opacity-100' : 'opacity-30'">⭐</button>
+                        </div>
+                        <textarea v-model="newReview.content" placeholder="구매 후기를 작성해주세요..." class="w-full p-2.5 border rounded-xl bg-white text-xs focus:outline-none" rows="3"></textarea>
+                        <button @click="submitReview" class="px-4 py-2 bg-[#5C5245] text-white text-xs font-bold rounded-xl hover:bg-black transition">후기 등록</button>
+                    </div>
+                    <!-- 후기 목록 -->
+                    <div v-if="productReviews.length > 0" class="space-y-3">
+                        <div v-for="r in productReviews" :key="r.id" class="bg-white p-4 rounded-xl border border-[#F0EAE0] space-y-1.5">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-gray-700">{{ r.username }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ new Date(r.created_at).toLocaleDateString('ko-KR') }}</span>
+                                </div>
+                                <span class="text-xs">{{ '⭐'.repeat(r.rating) }}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 leading-relaxed">{{ r.content }}</p>
+                        </div>
+                    </div>
+                    <div v-else class="text-center py-6 text-[11px] text-gray-400">아직 등록된 후기가 없습니다.</div>
+                </div>
+
                 <!-- 환불정책 -->
                 <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
                     <div>
@@ -178,11 +207,57 @@
         <div v-show="currentTab === 'checkout'" class="max-w-2xl mx-auto space-y-6">
             <div class="mb-4"><button @click="navigateTo('cart')" class="text-xs text-gray-500 hover:text-black font-medium">◀ 뒤로 돌아가기</button></div>
             <div class="bg-white p-6 rounded-2xl border border-[#F0EAE0] space-y-6">
-                <div class="text-center py-6">
+                <div class="text-center py-4">
                     <p class="text-sm font-bold text-gray-700 mb-1">{{ checkoutSummary.orderName }}</p>
-                    <p class="text-2xl font-black text-[#5C5245]">{{ formatPrice(checkoutSummary.amount) }}원</p>
+                    <div v-if="appliedCoupon" class="space-y-1">
+                        <p class="text-sm text-gray-400 line-through">{{ formatPrice(checkoutSummary.originalAmount) }}원</p>
+                        <p class="text-2xl font-black text-[#5C5245]">{{ formatPrice(checkoutSummary.amount) }}원</p>
+                        <p class="text-[11px] text-green-600 font-bold">🎁 {{ appliedCoupon.code }} 쿠폰 적용됨 (-{{ appliedCoupon.discount_type === 'percent' ? appliedCoupon.discount_value + '%' : formatPrice(appliedCoupon.discount_value) + '원' }})</p>
+                    </div>
+                    <p v-else class="text-2xl font-black text-[#5C5245]">{{ formatPrice(checkoutSummary.amount) }}원</p>
+                </div>
+                <!-- 쿠폰 입력 -->
+                <div class="space-y-2">
+                    <p class="text-[11px] font-bold text-gray-500">🎁 할인 쿠폰</p>
+                    <div class="flex gap-2">
+                        <input v-model="couponInput" type="text" placeholder="쿠폰 코드 입력" class="flex-grow p-2.5 border rounded-xl bg-[#FAF4EA] text-xs focus:outline-none focus:border-[#5C5245] uppercase">
+                        <button @click="applyCoupon" class="px-4 py-2 bg-gray-700 text-white text-xs font-bold rounded-xl hover:bg-black transition shrink-0">적용</button>
+                    </div>
+                    <button v-if="appliedCoupon" @click="removeCoupon" class="text-[11px] text-red-500 hover:underline">쿠폰 취소</button>
                 </div>
                 <button @click="requestTossPayment" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl tracking-widest transition shadow-md">🔒 안전 보안 결제하기</button>
+            </div>
+        </div>
+
+        <!-- 구매 완료 페이지 -->
+        <div v-if="currentTab === 'purchase_complete'" class="max-w-lg mx-auto py-12 px-4 text-center space-y-6">
+            <div class="bg-white rounded-2xl border border-[#F0EAE0] p-8 space-y-6">
+                <div class="space-y-2">
+                    <p class="text-4xl">🎉</p>
+                    <h2 class="text-xl font-black text-gray-800">결제가 완료되었습니다!</h2>
+                    <p class="text-xs text-gray-500">구매해주셔서 감사합니다 😊</p>
+                </div>
+                <div class="bg-[#FAF4EA] rounded-xl p-4 text-left space-y-2">
+                    <p class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">구매 상품</p>
+                    <div v-for="p in completedProducts" :key="p.id" class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#EFE9DC] shrink-0">
+                            <img v-if="p.image" :src="p.image" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-800">{{ p.name }}</p>
+                            <p class="text-[11px] text-amber-700 font-bold">{{ formatPrice(p.price) }}원</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2.5">
+                    <button v-for="p in completedProducts" :key="'dl-'+p.id" @click="goToEbook(p)"
+                        class="w-full py-3 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl transition">
+                        📖 {{ p.name }} — 전자책 바로 받기
+                    </button>
+                </div>
+                <button @click="navigateTo('shop')" class="w-full py-2.5 bg-[#EFE9DC] hover:bg-[#E2D9C8] text-[#5C5245] text-xs font-bold rounded-xl transition">
+                    쇼핑 계속하기
+                </button>
             </div>
         </div>
 
@@ -715,6 +790,11 @@
             const cart = ref([]);
             const activeProduct = ref(null);
             const myPurchases = ref([]);
+            const completedProducts = ref([]);
+            const couponInput = ref('');
+            const appliedCoupon = ref(null);
+            const productReviews = ref([]);
+            const newReview = ref({ rating: 5, content: '' });
             let paymentWidgetInstance = null;
             const checkoutSummary = ref({ amount: 0, orderName: '', orderId: '', productId: null });
             const categories = ref([]);
@@ -804,7 +884,7 @@
             // ── 네비게이션 ────────────────────────────────────────
             const navigateTo = (tab) => { currentTab.value = tab; };
             const triggerSearch = () => { if (currentTab.value !== 'shop') navigateTo('shop'); };
-            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); };
+            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); loadProductReviews(product.id); };
             const formatPrice = (v) => v ? v.toLocaleString() : 0;
 
             // ── 인증 ──────────────────────────────────────────────
@@ -985,6 +1065,52 @@
                 });
             };
 
+            const applyCoupon = async () => {
+                const code = couponInput.value.trim().toUpperCase();
+                if (!code) { alert('쿠폰 코드를 입력해주세요.'); return; }
+                const { data: coupon } = await sb.from('coupons').select('*').eq('code', code).single();
+                if (!coupon) { alert('❌ 유효하지 않은 쿠폰 코드입니다.'); return; }
+                if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) { alert('❌ 만료된 쿠폰입니다.'); return; }
+                if (coupon.max_uses && coupon.used_count >= coupon.max_uses) { alert('❌ 사용 횟수가 초과된 쿠폰입니다.'); return; }
+                const originalAmount = checkoutSummary.value.originalAmount || checkoutSummary.value.amount;
+                checkoutSummary.value.originalAmount = originalAmount;
+                let discount = coupon.discount_type === 'percent'
+                    ? Math.floor(originalAmount * coupon.discount_value / 100)
+                    : coupon.discount_value;
+                checkoutSummary.value.amount = Math.max(0, originalAmount - discount);
+                appliedCoupon.value = coupon;
+                alert(`✅ 쿠폰이 적용되었습니다! ${coupon.discount_type === 'percent' ? coupon.discount_value + '%' : formatPrice(coupon.discount_value) + '원'} 할인`);
+            };
+
+            const removeCoupon = () => {
+                checkoutSummary.value.amount = checkoutSummary.value.originalAmount || checkoutSummary.value.amount;
+                checkoutSummary.value.originalAmount = null;
+                appliedCoupon.value = null;
+                couponInput.value = '';
+            };
+
+            const loadProductReviews = async (productId) => {
+                const { data } = await sb.from('reviews').select('*').eq('product_id', productId).order('created_at', { ascending: false });
+                productReviews.value = data || [];
+            };
+
+            const submitReview = async () => {
+                if (!newReview.value.content.trim()) { alert('후기 내용을 입력해주세요.'); return; }
+                const { data: existing } = await sb.from('reviews').select('id').eq('user_id', userSession.value.id).eq('product_id', activeProduct.value.id).single();
+                if (existing) { alert('이미 후기를 작성하셨습니다.'); return; }
+                const { error } = await sb.from('reviews').insert({
+                    user_id: userSession.value.id,
+                    product_id: activeProduct.value.id,
+                    username: userSession.value.name,
+                    rating: newReview.value.rating,
+                    content: newReview.value.content
+                });
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadProductReviews(activeProduct.value.id);
+                newReview.value = { rating: 5, content: '' };
+                alert('✅ 후기가 등록되었습니다!');
+            };
+
             // ── 결제 ──────────────────────────────────────────────
             const proceedToCheckout = async (type) => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
@@ -1086,8 +1212,28 @@
                     }));
                     if (purchaseRows.length > 0) await sb.from('purchases').insert(purchaseRows);
                     await loadMyPurchases();
-                    alert('🎉 결제가 완료되었습니다! 전자책을 다운로드할 수 있습니다.');
-                    navigateTo('shop');
+                    // 쿠폰 사용 횟수 증가
+                    if (appliedCoupon.value) {
+                        await sb.from('coupons').update({ used_count: appliedCoupon.value.used_count + 1 }).eq('id', appliedCoupon.value.id);
+                        appliedCoupon.value = null;
+                        couponInput.value = '';
+                    }
+                    // 관리자 이메일 알림 발송
+                    try {
+                        const purchasedProductNames = orders.map(o => {
+                            const p = products.value.find(prod => prod.id === o.product_id);
+                            return p ? p.name : '상품';
+                        }).join(', ');
+                        await emailjs.send('service_a4wv5qd', 'template_0se47qa', {
+                            customer_name: orders[0].user_id ? userSession.value.name : '비회원',
+                            order_name: purchasedProductNames,
+                            amount: amount.toLocaleString(),
+                            order_id: orderId
+                        });
+                    } catch(e) { console.log('이메일 발송 오류:', e); }
+                    // 구매한 상품 목록 저장
+                    completedProducts.value = orders.map(o => products.value.find(p => p.id === o.product_id)).filter(Boolean);
+                    navigateTo('purchase_complete');
                 } else if (payment === 'fail') {
                     alert('❌ 결제가 취소되었거나 실패했습니다.');
                     navigateTo('shop');
@@ -1290,6 +1436,8 @@
 
             // ── onMounted ─────────────────────────────────────────
             onMounted(async () => {
+                // EmailJS 초기화
+                if (window.emailjs) emailjs.init('5HK8sQKMhBX39Zeax');
                 // 세션 복원
                 try {
                     const saved = localStorage.getItem('chagok_session');
@@ -1308,12 +1456,12 @@
                 userSession, allRegisteredUsers, cart, activeProduct, checkoutSummary,
                 products, notices, newProduct, editingProductId, editProductForm, newNotice,
                 cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
-                myPurchases,
+                myPurchases, completedProducts,
                 visibleCategories, filteredProducts, filteredNotices,
-                navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices,
+                navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
                 openLoginModal, closeLoginModal, isPrivacyOpen, isTermsOpen, isRefundOpen, isMypageOpen, deleteMyAccount, deletePasswordInput, agreePrivacy, agreeTerms, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
-                proceedToCheckout, requestTossPayment,
+                proceedToCheckout, requestTossPayment, couponInput, appliedCoupon, applyCoupon, removeCoupon,
                 checkAdminCredentials, handleAdminNav, logoutAdmin,
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream,
