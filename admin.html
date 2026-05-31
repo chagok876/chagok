@@ -50,6 +50,64 @@
             </div>
         </div>
 
+        <!-- 매출 통계 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div class="bg-white p-4 rounded-2xl border border-gray-200 text-center space-y-1">
+                <p class="text-gray-400 text-[11px]">총 매출</p>
+                <p class="text-xl font-black text-[#5C5245]">{{ formatPrice(stats.totalRevenue) }}원</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-gray-200 text-center space-y-1">
+                <p class="text-gray-400 text-[11px]">총 주문</p>
+                <p class="text-xl font-black text-gray-800">{{ stats.totalOrders }}건</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-gray-200 text-center space-y-1">
+                <p class="text-gray-400 text-[11px]">총 회원</p>
+                <p class="text-xl font-black text-gray-800">{{ allUsers.length }}명</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-gray-200 text-center space-y-1">
+                <p class="text-gray-400 text-[11px]">등록 상품</p>
+                <p class="text-xl font-black text-gray-800">{{ products.length }}개</p>
+            </div>
+        </div>
+
+        <!-- 쿠폰 관리 -->
+        <div class="bg-[#FAF4EA] p-5 rounded-2xl border border-[#EAE1D4] text-xs space-y-4">
+            <h2 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">🎁 쿠폰 관리</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-4 rounded-xl border border-gray-200 space-y-2.5">
+                    <label class="block font-bold text-gray-700">➕ 새 쿠폰 생성</label>
+                    <input v-model="newCoupon.code" type="text" placeholder="쿠폰 코드 (영문 대문자)" class="w-full p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs uppercase">
+                    <div class="flex gap-2">
+                        <select v-model="newCoupon.discount_type" class="flex-1 p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs">
+                            <option value="percent">% 할인</option>
+                            <option value="fixed">정액 할인</option>
+                        </select>
+                        <input v-model.number="newCoupon.discount_value" type="number" placeholder="할인 값" class="flex-1 p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs">
+                    </div>
+                    <input v-model.number="newCoupon.max_uses" type="number" placeholder="최대 사용 횟수 (비워두면 무제한)" class="w-full p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs">
+                    <input v-model="newCoupon.expires_at" type="date" class="w-full p-2 border rounded-xl bg-[#FBF9F6] focus:outline-none text-xs">
+                    <button @click="createCoupon" class="w-full py-2 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition">쿠폰 생성</button>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-200 space-y-2">
+                    <label class="block font-bold text-gray-700">📋 쿠폰 목록</label>
+                    <div class="max-h-48 overflow-y-auto border rounded-xl divide-y bg-gray-50/50">
+                        <div v-for="c in coupons" :key="c.id" class="p-2.5 flex justify-between items-center gap-2">
+                            <div class="space-y-0.5">
+                                <p class="font-black text-gray-800 tracking-wider">{{ c.code }}</p>
+                                <p class="text-[10px] text-gray-500">
+                                    {{ c.discount_type === 'percent' ? c.discount_value + '% 할인' : formatPrice(c.discount_value) + '원 할인' }}
+                                    · 사용 {{ c.used_count }}/{{ c.max_uses || '∞' }}
+                                    <span v-if="c.expires_at"> · 만료 {{ new Date(c.expires_at).toLocaleDateString('ko-KR') }}</span>
+                                </p>
+                            </div>
+                            <button @click="deleteCoupon(c.id)" class="px-2 py-0.5 bg-red-50 text-red-600 rounded border border-red-200 hover:bg-red-100 font-bold text-[10px] shrink-0">삭제</button>
+                        </div>
+                        <div v-if="coupons.length === 0" class="text-center py-6 text-gray-400">등록된 쿠폰이 없습니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 카테고리 관리 -->
         <div class="bg-[#FAF4EA] p-5 rounded-2xl border border-[#EAE1D4] text-xs space-y-4">
             <h2 class="font-bold text-sm text-[#5C5245] border-b border-[#EAE1D4] pb-2">📂 카테고리 관리</h2>
@@ -283,18 +341,30 @@
             const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
             const editingNoticeId = ref(null);
             const editNoticeForm = ref({ category: '', title: '', content: '', file_url: '' });
+            const coupons = ref([]);
+            const newCoupon = ref({ code: '', discount_type: 'percent', discount_value: null, max_uses: null, expires_at: '' });
+            const stats = ref({ totalRevenue: 0, totalOrders: 0 });
 
             const loadAll = async () => {
-                const [{ data: cats }, { data: prods }, { data: nots }, { data: usrs }] = await Promise.all([
+                const [{ data: cats }, { data: prods }, { data: nots }, { data: usrs }, { data: cpns }, { data: ords }] = await Promise.all([
                     sb.from('categories').select('*').order('created_at'),
                     sb.from('products').select('*').order('created_at', { ascending: false }),
                     sb.from('notices').select('*').order('created_at', { ascending: false }),
-                    sb.from('users').select('*').order('created_at')
+                    sb.from('users').select('*').order('created_at'),
+                    sb.from('coupons').select('*').order('created_at', { ascending: false }),
+                    sb.from('orders').select('*').eq('status', 'paid')
                 ]);
                 categories.value = (cats || []).map(c => ({ ...c, hidden: c.hidden || false }));
                 products.value = (prods || []).map(p => ({ ...p, detailImages: p.detail_images || [], hidden: p.hidden || false }));
                 notices.value = nots || [];
                 allUsers.value = usrs || [];
+                coupons.value = cpns || [];
+                // 통계 계산 (중복 orderId 제외)
+                const uniqueOrders = [...new Map((ords || []).map(o => [o.order_id, o])).values()];
+                stats.value = {
+                    totalRevenue: uniqueOrders.reduce((sum, o) => sum + (o.amount || 0), 0),
+                    totalOrders: uniqueOrders.length
+                };
                 if (categories.value.length > 0) {
                     newProduct.value.category = categories.value[0].name;
                     newNotice.value.category = categories.value[0].name;
@@ -458,6 +528,29 @@
             };
 
             // 회원
+            const createCoupon = async () => {
+                const code = newCoupon.value.code.trim().toUpperCase();
+                if (!code || !newCoupon.value.discount_value) { alert('코드와 할인 값을 입력해주세요.'); return; }
+                const { error } = await sb.from('coupons').insert({
+                    code,
+                    discount_type: newCoupon.value.discount_type,
+                    discount_value: newCoupon.value.discount_value,
+                    max_uses: newCoupon.value.max_uses || null,
+                    expires_at: newCoupon.value.expires_at || null
+                });
+                if (error) { alert('오류: ' + error.message); return; }
+                await loadAll();
+                alert(`🎁 [${code}] 쿠폰이 생성되었습니다.`);
+                newCoupon.value = { code: '', discount_type: 'percent', discount_value: null, max_uses: null, expires_at: '' };
+            };
+
+            const deleteCoupon = async (id) => {
+                if (confirm('쿠폰을 삭제하시겠습니까?')) {
+                    await sb.from('coupons').delete().eq('id', id);
+                    await loadAll();
+                }
+            };
+
             const kickUser = async (u) => {
                 if (!confirm(`${u.name || u.username} 회원을 탈퇴 처리하시겠습니까?`)) return;
                 await sb.from('purchases').delete().eq('user_id', u.id);
@@ -480,7 +573,7 @@
                 newCategoryName, editingCategoryId, editCategoryNameInput,
                 newProduct, editingProductId, editProductForm,
                 newNotice, editingNoticeId, editNoticeForm,
-                checkAdminCredentials, logout, formatPrice,
+                checkAdminCredentials, logout, formatPrice, stats, coupons, newCoupon, createCoupon, deleteCoupon,
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream, addProduct, startEditProduct, uploadEditProductImage, saveProductEdit, deleteProduct, toggleProductVisibility,
                 uploadNoticeFile, addNotice, startEditNotice, uploadEditNoticeFile, saveNoticeEdit, deleteNotice,
