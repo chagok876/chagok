@@ -111,6 +111,22 @@
                                 <span class="text-xs font-bold text-gray-500">최종 결제 금액</span>
                                 <span class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
                             </div>
+                            <!-- 쿠폰 표시 (미구매 상품만) -->
+                            <div v-if="!hasPurchased(activeProduct.id) && availableCoupons.length > 0" class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                                <p class="text-[11px] font-black text-amber-800">🎁 사용 가능한 쿠폰</p>
+                                <div v-for="c in availableCoupons" :key="c.id" class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+                                    <div>
+                                        <p class="text-xs font-black text-gray-800 tracking-wider">{{ c.code }}</p>
+                                        <p class="text-[10px] text-gray-500">{{ c.discount_type === 'percent' ? c.discount_value + '% 할인' : formatPrice(c.discount_value) + '원 할인' }}</p>
+                                    </div>
+                                    <button @click="applyDetailCoupon(c)" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition">적용</button>
+                                </div>
+                                <div v-if="detailAppliedCoupon" class="flex items-center justify-between text-[11px] pt-1">
+                                    <span class="text-green-600 font-bold">✅ {{ detailAppliedCoupon.code }} 적용됨</span>
+                                    <button @click="detailAppliedCoupon = null" class="text-red-400 hover:underline">취소</button>
+                                </div>
+                            </div>
+
                             <div v-if="!hasPurchased(activeProduct.id)" class="grid grid-cols-2 gap-3">
                                 <button @click="addToCart" class="py-4 bg-[#EFE9DC] hover:bg-[#E2D9C8] text-[#5C5245] text-xs font-bold rounded-xl tracking-wider transition">🛒 장바구니 담기</button>
                                 <button @click="proceedToCheckout('direct')" class="py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">💳 즉시 결제하기</button>
@@ -793,6 +809,8 @@
             const completedProducts = ref([]);
             const couponInput = ref('');
             const appliedCoupon = ref(null);
+            const availableCoupons = ref([]);
+            const detailAppliedCoupon = ref(null);
             const productReviews = ref([]);
             const newReview = ref({ rating: 5, content: '' });
             let paymentWidgetInstance = null;
@@ -827,6 +845,13 @@
                     newProduct.value.category = categories.value[0].name;
                     newNotice.value.category = categories.value[0].name;
                 }
+                // 쿠폰 로드
+                const { data: cpns } = await sb.from('coupons').select('*');
+                availableCoupons.value = (cpns || []).filter(c => {
+                    if (c.expires_at && new Date(c.expires_at) < new Date()) return false;
+                    if (c.max_uses && c.used_count >= c.max_uses) return false;
+                    return true;
+                });
             };
 
             const loadMyPurchases = async () => {
@@ -1065,6 +1090,10 @@
                 });
             };
 
+            const applyDetailCoupon = (coupon) => {
+                detailAppliedCoupon.value = coupon;
+            };
+
             const applyCoupon = async () => {
                 const code = couponInput.value.trim().toUpperCase();
                 if (!code) { alert('쿠폰 코드를 입력해주세요.'); return; }
@@ -1114,6 +1143,11 @@
             // ── 결제 ──────────────────────────────────────────────
             const proceedToCheckout = async (type) => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
+                // 상세페이지 쿠폰 자동 적용
+                if (detailAppliedCoupon.value) {
+                    appliedCoupon.value = detailAppliedCoupon.value;
+                    couponInput.value = detailAppliedCoupon.value.code;
+                }
                 // user_id가 없으면 DB에서 다시 조회
                 if (!userSession.value.id) {
                     const { data: foundUser } = await sb.from('users').select('id').eq('username', userSession.value.name).single();
@@ -1461,7 +1495,7 @@
                 navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
                 openLoginModal, closeLoginModal, isPrivacyOpen, isTermsOpen, isRefundOpen, isMypageOpen, deleteMyAccount, deletePasswordInput, agreePrivacy, agreeTerms, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
-                proceedToCheckout, requestTossPayment, couponInput, appliedCoupon, applyCoupon, removeCoupon,
+                proceedToCheckout, requestTossPayment, couponInput, appliedCoupon, applyCoupon, removeCoupon, availableCoupons, detailAppliedCoupon, applyDetailCoupon,
                 checkAdminCredentials, handleAdminNav, logoutAdmin,
                 createNewCategory, startEditCategory, saveCategoryName, toggleCategoryVisibility,
                 uploadFileStream,
