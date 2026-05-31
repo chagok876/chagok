@@ -76,7 +76,26 @@
                         <h3 class="text-sm font-bold mt-1 text-gray-800 group-hover:text-[#5C5245] transition-colors">{{ product.name }}</h3>
                     </div>
                     <div class="mt-4 pt-3 border-t border-[#FAF4EA] flex justify-between items-center">
-                        <span class="font-bold text-sm text-[#5C5245]">{{ formatPrice(product.price) }}원</span>
+                        <div v-if="availableCoupons.length > 0">
+    <p class="text-xs text-gray-400 line-through">
+        {{ formatPrice(product.price) }}원
+    </p>
+
+    <p class="font-black text-red-600">
+        {{ formatPrice(
+            calcDiscountedPrice(
+                product.price,
+                availableCoupons[0]
+            )
+        ) }}원
+    </p>
+</div>
+
+<div v-else>
+    <p class="font-black text-[#5C5245]">
+        {{ formatPrice(product.price) }}원
+    </p>
+</div>
                         <span class="text-[11px] text-gray-400 group-hover:text-black font-medium">자세히 보기 ➔</span>
                     </div>
                 </div>
@@ -103,13 +122,38 @@
                             <div>
                                 <span class="text-xs uppercase tracking-widest text-amber-800 bg-amber-50 px-2.5 py-1 rounded font-black">{{ activeProduct.category }}</span>
                                 <h2 class="text-2xl font-black text-gray-900 mt-2">{{ activeProduct.name }}</h2>
-                                <div class="text-xl font-bold text-[#5C5245] mt-2">판매가: {{ formatPrice(activeProduct.price) }}원</div>
+                                <div class="mt-2">
+    <div v-if="detailAppliedCoupon">
+        <p class="text-sm text-gray-400 line-through">
+            {{ formatPrice(activeProduct.price) }}원
+        </p>
+        <p class="text-2xl font-black text-red-600">
+            {{ formatPrice(calcDiscountedPrice(activeProduct.price, detailAppliedCoupon)) }}원
+        </p>
+        <p class="text-[11px] text-green-600 font-bold">
+            {{ detailAppliedCoupon.discount_type === 'percent'
+                ? detailAppliedCoupon.discount_value + '% 할인'
+                : formatPrice(detailAppliedCoupon.discount_value) + '원 할인' }}
+        </p>
+    </div>
+
+    <div v-else class="text-xl font-bold text-[#5C5245]">
+        판매가: {{ formatPrice(activeProduct.price) }}원
+    </div>
+</div>
                             </div>
                         </div>
                         <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
                             <div class="flex justify-between items-center px-1">
                                 <span class="text-xs font-bold text-gray-500">최종 결제 금액</span>
-                                <span class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
+                                <div class="text-right">
+                                    <div v-if="detailAppliedCoupon" class="space-y-0.5">
+                                        <p class="text-sm text-gray-400 line-through">{{ formatPrice(activeProduct.price) }}원</p>
+                                        <p class="text-xl font-black text-[#5C5245]">{{ formatPrice(calcDiscountedPrice(activeProduct.price, detailAppliedCoupon)) }}원</p>
+                                        <p class="text-[11px] text-green-600 font-bold">{{ detailAppliedCoupon.discount_type === 'percent' ? detailAppliedCoupon.discount_value + '% 할인' : formatPrice(detailAppliedCoupon.discount_value) + '원 할인' }}</p>
+                                    </div>
+                                    <span v-else class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
+                                </div>
                             </div>
                             <!-- 쿠폰 표시 (미구매 상품만) -->
                             <div v-if="!hasPurchased(activeProduct.id) && availableCoupons.length > 0" class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
@@ -909,8 +953,30 @@
             // ── 네비게이션 ────────────────────────────────────────
             const navigateTo = (tab) => { currentTab.value = tab; };
             const triggerSearch = () => { if (currentTab.value !== 'shop') navigateTo('shop'); };
-            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); loadProductReviews(product.id); };
+            const goToDetailView = (product) => {
+    activeProduct.value = product;
+
+    // 상품 이동 시 쿠폰 초기화
+    detailAppliedCoupon.value = null;
+
+    currentTab.value = 'product_detail';
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+
+    loadProductReviews(product.id);
+};
             const formatPrice = (v) => v ? v.toLocaleString() : 0;
+
+            const calcDiscountedPrice = (price, coupon) => {
+                if (!coupon) return price;
+                const discount = coupon.discount_type === 'percent'
+                    ? Math.floor(price * coupon.discount_value / 100)
+                    : coupon.discount_value;
+                return Math.max(0, price - discount);
+            };
 
             // ── 인증 ──────────────────────────────────────────────
             const openLoginModal = () => { authMode.value = 'login'; authForm.value = { username: '', password: '' }; isLoginModalOpen.value = true; };
@@ -1157,15 +1223,23 @@
                     }
                 }
                 let productIds = [];
+                let originalAmount = 0;
                 if (type === 'direct') {
-                    checkoutSummary.value.amount = activeProduct.value.price;
+                    originalAmount = activeProduct.value.price;
                     checkoutSummary.value.orderName = activeProduct.value.name;
                     productIds = [activeProduct.value.id];
                 } else {
                     if (cart.value.length === 0) return;
-                    checkoutSummary.value.amount = cartTotalPrice.value;
+                    originalAmount = cartTotalPrice.value;
                     checkoutSummary.value.orderName = cart.value.length === 1 ? cart.value[0].product.name : `${cart.value[0].product.name} 외 ${cart.value.length - 1}건`;
                     productIds = cart.value.map(item => item.product.id);
+                }
+                // 쿠폰 할인 적용
+                checkoutSummary.value.originalAmount = originalAmount;
+                if (appliedCoupon.value) {
+                    checkoutSummary.value.amount = calcDiscountedPrice(originalAmount, appliedCoupon.value);
+                } else {
+                    checkoutSummary.value.amount = originalAmount;
                 }
                 const orderId = 'CGK-' + Date.now();
                 checkoutSummary.value.orderId = orderId;
@@ -1492,7 +1566,7 @@
                 cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
                 myPurchases, completedProducts,
                 visibleCategories, filteredProducts, filteredNotices,
-                navigateTo, triggerSearch, goToDetailView, formatPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
+                navigateTo, triggerSearch, goToDetailView, formatPrice, calcDiscountedPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
                 openLoginModal, closeLoginModal, isPrivacyOpen, isTermsOpen, isRefundOpen, isMypageOpen, deleteMyAccount, deletePasswordInput, agreePrivacy, agreeTerms, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
                 proceedToCheckout, requestTossPayment, couponInput, appliedCoupon, applyCoupon, removeCoupon, availableCoupons, detailAppliedCoupon, applyDetailCoupon,
