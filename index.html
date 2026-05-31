@@ -1280,6 +1280,12 @@
                 alert('✅ 파일이 업로드되었습니다.');
             };
 
+            const toggleNotice = (id) => {
+                const idx = openNoticeIds.value.indexOf(id);
+                if (idx === -1) openNoticeIds.value.push(id);
+                else openNoticeIds.value.splice(idx, 1);
+            };
+
             // ── onMounted ─────────────────────────────────────────
             onMounted(async () => {
                 // 세션 복원
