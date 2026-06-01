@@ -159,8 +159,15 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] text-gray-500 mb-1">판매가 (원)</label>
-                    <input v-model.number="newProduct.price" type="number" placeholder="금액 입력" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                    <label class="block text-[11px] text-gray-500 mb-1">원가 (할인 전 가격, 선택)</label>
+                    <input v-model.number="newProduct.original_price" type="number" placeholder="원가 입력 (없으면 비워두세요)" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">판매가 (실제 결제 금액)</label>
+                    <input v-model.number="newProduct.price" type="number" placeholder="판매가 입력" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none">
+                    <p v-if="newProduct.original_price && newProduct.price" class="text-[10px] text-amber-600 mt-1 font-bold">
+                        할인율: {{ Math.round((1 - newProduct.price / newProduct.original_price) * 100) }}% 할인
+                    </p>
                 </div>
                 <div>
                     <label class="block text-[11px] text-gray-500 mb-1">상품 설명</label>
@@ -209,7 +216,13 @@
                             <select v-model="editProductForm.category" class="w-full p-1.5 border rounded bg-white text-xs">
                                 <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
                             </select>
-                            <input v-model.number="editProductForm.price" type="number" class="w-full p-1.5 border rounded bg-white text-xs">
+                            <div class="space-y-1">
+                                <input v-model.number="editProductForm.original_price" type="number" placeholder="원가 (선택)" class="w-full p-1.5 border rounded bg-white text-xs">
+                                <input v-model.number="editProductForm.price" type="number" placeholder="판매가" class="w-full p-1.5 border rounded bg-white text-xs">
+                                <p v-if="editProductForm.original_price && editProductForm.price" class="text-[10px] text-amber-600 font-bold">
+                                    할인율: {{ Math.round((1 - editProductForm.price / editProductForm.original_price) * 100) }}%
+                                </p>
+                            </div>
                             <textarea v-model="editProductForm.description" class="w-full p-1.5 border rounded bg-white text-xs" rows="2"></textarea>
                             <div class="bg-white p-2 rounded border border-gray-200 space-y-1">
                                 <label class="block text-[10px] font-bold text-gray-500">■ 대표 이미지 교체</label>
@@ -336,7 +349,7 @@
             const newCategoryName = ref('');
             const editingCategoryId = ref(null);
             const editCategoryNameInput = ref('');
-            const newProduct = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
+            const newProduct = ref({ name: '', category: '', price: null, original_price: null, description: '', image: '', detailImages: [] });
             const editingProductId = ref(null);
             const editProductForm = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
             const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
@@ -444,14 +457,15 @@
                 if (!newProduct.value.name || !newProduct.value.price) { alert('상품명과 금액은 필수입니다.'); return; }
                 const { error } = await sb.from('products').insert({
                     name: newProduct.value.name, category: newProduct.value.category,
-                    price: newProduct.value.price, description: newProduct.value.description,
+                    price: newProduct.value.price, original_price: newProduct.value.original_price || null,
+                    description: newProduct.value.description,
                     image: newProduct.value.image, detail_images: newProduct.value.detailImages,
                     hidden: false, ebook_url: ''
                 });
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
                 alert('상품이 등록되었습니다.');
-                newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, description: '', image: '', detailImages: [] };
+                newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, original_price: null, description: '', image: '', detailImages: [] };
             };
             const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p, detailImages: p.detailImages || [] }; };
             const uploadEditProductImage = async (event, type) => {
@@ -478,7 +492,8 @@
             const saveProductEdit = async () => {
                 const { error } = await sb.from('products').update({
                     name: editProductForm.value.name, category: editProductForm.value.category,
-                    price: editProductForm.value.price, description: editProductForm.value.description,
+                    price: editProductForm.value.price, original_price: editProductForm.value.original_price || null,
+                    description: editProductForm.value.description,
                     image: editProductForm.value.image, detail_images: editProductForm.value.detailImages || []
                 }).eq('id', editingProductId.value);
                 if (error) { alert('오류: ' + error.message); return; }
