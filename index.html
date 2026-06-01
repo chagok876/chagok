@@ -1036,7 +1036,11 @@
             });
 
             // ── 네비게이션 ────────────────────────────────────────
-            const navigateTo = (tab) => { currentTab.value = tab; };
+            const navigateTo = (tab) => {
+                currentTab.value = tab;
+                const saveable = ['shop', 'cart', 'notice'];
+                if (saveable.includes(tab)) localStorage.setItem('chagok_tab', tab);
+            };
             const triggerSearch = () => { if (currentTab.value !== 'shop') navigateTo('shop'); };
             const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); loadProductReviews(product.id); };
             const formatPrice = (v) => v ? v.toLocaleString() : 0;
@@ -1696,6 +1700,9 @@
                     const savedCart = localStorage.getItem('chagok_cart');
                     if (savedCart) cart.value = JSON.parse(savedCart);
                 } catch (e) { localStorage.removeItem('chagok_cart'); }
+                // 마지막 탭 복원
+                const savedTab = localStorage.getItem('chagok_tab');
+                if (savedTab) currentTab.value = savedTab;
 
                 await loadAll();
                 if (userSession.value.isLoggedIn) {
