@@ -853,11 +853,13 @@
                     newProduct.value.category = categories.value[0].name;
                     newNotice.value.category = categories.value[0].name;
                 }
-                // 쿠폰 로드
+                // 쿠폰 로드 (전체 공개 쿠폰 + 로그인 유저 개인 쿠폰)
                 const { data: cpns } = await sb.from('coupons').select('*');
                 availableCoupons.value = (cpns || []).filter(c => {
                     if (c.expires_at && new Date(c.expires_at) < new Date()) return false;
                     if (c.max_uses && c.used_count >= c.max_uses) return false;
+                    // 개인 쿠폰은 해당 유저만 볼 수 있음
+                    if (c.user_id && c.user_id !== userSession.value.id) return false;
                     return true;
                 });
             };
@@ -946,20 +948,22 @@
                 userSession.value = { isLoggedIn: true, name: uid, id: newUserData?.id || null };
                 localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
                 isLoginModalOpen.value = false;
-                // 웰컴 쿠폰 자동 생성 (3일 유효, 10% 할인)
+                // 웰컴 쿠폰 자동 생성 (3일 유효, 10% 할인, 개인 전용)
                 const couponCode = 'WELCOME' + Math.random().toString(36).substring(2,7).toUpperCase();
                 const expiresAt = new Date();
                 expiresAt.setDate(expiresAt.getDate() + 3);
+                const newUserId = newUserData?.id || null;
                 await sb.from('coupons').insert({
                     code: couponCode,
                     discount_type: 'percent',
                     discount_value: 10,
                     max_uses: 1,
                     used_count: 0,
-                    expires_at: expiresAt.toISOString()
+                    expires_at: expiresAt.toISOString(),
+                    user_id: newUserId
                 });
                 await loadAll();
-                alert(`🎉 회원가입이 완료되었습니다!\n\n🎁 웰컴 쿠폰이 발급되었습니다!\n코드: ${couponCode}\n10% 할인 · 3일 유효`);
+                alert(`🎉 회원가입이 완료되었습니다!\n\n🎁 웰컴 쿠폰이 발급되었습니다!\n코드: ${couponCode}\n10% 할인 · 3일 유효\n\n상품 상세페이지에서 쿠폰을 선택하여 사용하세요!`);
             };
 
             const handleLogin = async () => {
