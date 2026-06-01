@@ -1105,7 +1105,6 @@
             const logoutUser = () => {
                 userSession.value = { isLoggedIn: false, name: '', id: null };
                 localStorage.removeItem('chagok_session');
-                cart.value = [];
                 myPurchases.value = [];
                 // 개인 쿠폰만 제거, 공개 쿠폰은 유지
                 availableCoupons.value = availableCoupons.value.filter(c => !c.user_id);
@@ -1207,12 +1206,17 @@
             };
 
             // ── 장바구니 ──────────────────────────────────────────
+            const saveCart = () => {
+                localStorage.setItem('chagok_cart', JSON.stringify(cart.value));
+            };
+
             const addToCart = () => {
                 if (!userSession.value.isLoggedIn) { alert('⚠️ 로그인이 필요합니다.'); openLoginModal(); return; }
                 cart.value.push({ product: activeProduct.value, singleTotalPrice: activeProduct.value.price });
+                saveCart();
                 if (confirm('🛒 장바구니에 담았습니다. 이동할까요?')) navigateTo('cart');
             };
-            const removeFromCart = (i) => { cart.value.splice(i, 1); };
+            const removeFromCart = (i) => { cart.value.splice(i, 1); saveCart(); };
 
             // ── 구매 내역 ─────────────────────────────────────────
             const hasPurchased = (productId) => myPurchases.value.some(p => p.product_id === productId);
@@ -1687,6 +1691,11 @@
                     const saved = localStorage.getItem('chagok_session');
                     if (saved) userSession.value = JSON.parse(saved);
                 } catch (e) { localStorage.removeItem('chagok_session'); }
+                // 장바구니 복원
+                try {
+                    const savedCart = localStorage.getItem('chagok_cart');
+                    if (savedCart) cart.value = JSON.parse(savedCart);
+                } catch (e) { localStorage.removeItem('chagok_cart'); }
 
                 await loadAll();
                 if (userSession.value.isLoggedIn) {
