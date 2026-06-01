@@ -232,8 +232,8 @@
                                 <input type="file" @change="e => uploadEditProductImage(e, 'main')" accept="image/*" class="w-full text-[10px]">
                             </div>
                             <div class="bg-white p-2 rounded border border-amber-200 space-y-1">
-                                <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (다중)</label>
                                 <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (최대 5장)</label>
+                                <div v-if="editProductForm.detailImages && editProductForm.detailImages.length > 0" class="flex gap-1 flex-wrap mb-1">
                                     <img v-for="(img, i) in editProductForm.detailImages" :key="i" :src="img" class="w-12 h-12 object-cover rounded border">
                                 </div>
                                 <input type="file" @change="e => uploadEditProductImage(e, 'detail')" accept="image/*" multiple class="w-full text-[10px]">
