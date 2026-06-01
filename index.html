@@ -1018,6 +1018,11 @@
                 localStorage.removeItem('chagok_session');
                 cart.value = [];
                 myPurchases.value = [];
+                // 개인 쿠폰만 제거, 공개 쿠폰은 유지
+                availableCoupons.value = availableCoupons.value.filter(c => !c.user_id);
+                appliedCoupon.value = null;
+                detailAppliedCoupon.value = null;
+                couponInput.value = '';
                 alert('로그아웃되었습니다.');
                 navigateTo('shop');
             };
