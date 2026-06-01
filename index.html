@@ -278,9 +278,30 @@
                             <span class="font-black text-amber-700">{{ formatPrice(bundleDiscountedPrice) }}원</span>
                         </div>
                     </div>
-                    <div class="border-t pt-3 flex justify-between font-black text-base text-[#5C5245]">
-                        <span>최종 결제 금액</span>
-                        <span>{{ formatPrice(cart.length >= 2 ? bundleDiscountedPrice : cartTotalPrice) }}원</span>
+                    <!-- 장바구니 쿠폰 선택 -->
+                    <div v-if="userSession.isLoggedIn && availableCoupons.length > 0" class="space-y-1.5">
+                        <p class="text-[11px] font-bold text-gray-500">🎁 쿠폰 선택</p>
+                        <select @change="e => applyDetailCoupon(availableCoupons.find(c => c.code === e.target.value))"
+                            class="w-full p-2 border rounded-xl bg-[#FAF4EA] text-xs focus:outline-none focus:border-amber-400">
+                            <option value="">쿠폰을 선택하세요</option>
+                            <option v-for="c in availableCoupons" :key="c.id" :value="c.code">
+                                {{ c.code }} — {{ c.discount_type === 'percent' ? c.discount_value + '% 할인' : formatPrice(c.discount_value) + '원 할인' }}
+                            </option>
+                        </select>
+                        <div v-if="detailAppliedCoupon" class="flex items-center justify-between text-[11px]">
+                            <span class="text-green-600 font-bold">✅ {{ detailAppliedCoupon.code }} 적용 중</span>
+                            <button @click="detailAppliedCoupon = null" class="text-red-400 hover:underline text-[10px]">취소</button>
+                        </div>
+                    </div>
+                    <div class="border-t pt-3 space-y-1">
+                        <div v-if="detailAppliedCoupon" class="flex justify-between text-[11px] text-gray-400">
+                            <span>쿠폰 할인</span>
+                            <span class="text-green-600 font-bold">-{{ detailAppliedCoupon.discount_type === 'percent' ? detailAppliedCoupon.discount_value + '%' : formatPrice(detailAppliedCoupon.discount_value) + '원' }}</span>
+                        </div>
+                        <div class="flex justify-between font-black text-base text-[#5C5245]">
+                            <span>최종 결제 금액</span>
+                            <span>{{ formatPrice(cartFinalPrice) }}원</span>
+                        </div>
                     </div>
                     <button @click="proceedToCheckout('cart')" class="w-full py-3.5 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-widest transition">주문 결제 진행하기</button>
                 </div>
@@ -973,6 +994,11 @@
 
             const cartTotalPrice = computed(() => cart.value.reduce((a, i) => a + i.singleTotalPrice, 0));
             const bundleDiscountedPrice = computed(() => Math.floor(cartTotalPrice.value * 0.9));
+            const cartFinalPrice = computed(() => {
+                const base = cart.value.length >= 2 ? bundleDiscountedPrice.value : cartTotalPrice.value;
+                if (!detailAppliedCoupon.value) return base;
+                return calcDiscountedPrice(base, detailAppliedCoupon.value);
+            });
 
             // 공개 쿠폰 중 최대 할인 쿠폰
             const bestPublicCoupon = computed(() => {
@@ -1317,7 +1343,7 @@
                     productIds = [activeProduct.value.id];
                 } else {
                     if (cart.value.length === 0) return;
-                    originalAmount = cart.value.length >= 2 ? bundleDiscountedPrice.value : cartTotalPrice.value;
+                    originalAmount = cartFinalPrice.value;
                     checkoutSummary.value.orderName = cart.value.length === 1 ? cart.value[0].product.name : `${cart.value[0].product.name} 외 ${cart.value.length - 1}건`;
                     if (cart.value.length >= 2) checkoutSummary.value.orderName += ' (번들 10% 할인)';
                     productIds = cart.value.map(item => item.product.id);
@@ -1688,7 +1714,7 @@
                 products, notices, newProduct, editingProductId, editProductForm, newNotice,
                 cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
                 myPurchases, completedProducts,
-                visibleCategories, filteredProducts, filteredNotices, bestPublicCoupon, bundleDiscountedPrice,
+                visibleCategories, filteredProducts, filteredNotices, bestPublicCoupon, bundleDiscountedPrice, cartFinalPrice,
                 navigateTo, triggerSearch, goToDetailView, formatPrice, calcDiscountedPrice, scrollToTop, showScrollTop, getTimeLeft, myOrderHistory, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
                 openLoginModal, closeLoginModal, isPrivacyOpen, isTermsOpen, isRefundOpen, isMypageOpen, deleteMyAccount, deletePasswordInput, agreePrivacy, agreeTerms, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
