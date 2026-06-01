@@ -173,6 +173,11 @@
                     <label class="block text-[11px] text-gray-500 mb-1">상품 설명</label>
                     <textarea v-model="newProduct.description" placeholder="상품 설명" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none" rows="3"></textarea>
                 </div>
+                <div>
+                    <label class="block text-[11px] text-gray-500 mb-1">🔥 한정 특가 마감 시간 (선택)</label>
+                    <input v-model="newProduct.sale_ends_at" type="datetime-local" class="w-full p-2.5 border rounded-xl bg-white focus:outline-none text-xs">
+                    <p class="text-[9px] text-gray-400 mt-1">설정하면 상품에 카운트다운 타이머가 표시됩니다</p>
+                </div>
                 <div class="space-y-1 bg-white p-3 rounded-xl border border-gray-200">
                     <label class="block font-bold text-[11px] text-gray-500">■ 대표 이미지</label>
                     <input type="file" @change="e => uploadFileStream(e, 'product_main')" accept="image/*" class="w-full text-[10px] pt-1">
@@ -224,6 +229,10 @@
                                 </p>
                             </div>
                             <textarea v-model="editProductForm.description" class="w-full p-1.5 border rounded bg-white text-xs" rows="2"></textarea>
+                            <div>
+                                <label class="block text-[9px] text-gray-400 mb-0.5">🔥 한정 특가 마감 시간</label>
+                                <input v-model="editProductForm.sale_ends_at" type="datetime-local" class="w-full p-1.5 border rounded bg-white text-[10px]">
+                            </div>
                             <div class="bg-white p-2 rounded border border-gray-200 space-y-1">
                                 <label class="block text-[10px] font-bold text-gray-500">■ 대표 이미지 교체</label>
                                 <div v-if="editProductForm.image" class="w-full h-20 overflow-hidden rounded mb-1">
@@ -349,7 +358,7 @@
             const newCategoryName = ref('');
             const editingCategoryId = ref(null);
             const editCategoryNameInput = ref('');
-            const newProduct = ref({ name: '', category: '', price: null, original_price: null, description: '', image: '', detailImages: [] });
+            const newProduct = ref({ name: '', category: '', price: null, original_price: null, description: '', image: '', detailImages: [], sale_ends_at: '' });
             const editingProductId = ref(null);
             const editProductForm = ref({ name: '', category: '', price: null, description: '', image: '', detailImages: [] });
             const newNotice = ref({ category: '', title: '', content: '', file_url: '' });
@@ -460,12 +469,13 @@
                     price: newProduct.value.price, original_price: newProduct.value.original_price || null,
                     description: newProduct.value.description,
                     image: newProduct.value.image, detail_images: newProduct.value.detailImages,
-                    hidden: false, ebook_url: ''
+                    hidden: false, ebook_url: '',
+                    sale_ends_at: newProduct.value.sale_ends_at || null
                 });
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll();
                 alert('상품이 등록되었습니다.');
-                newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, original_price: null, description: '', image: '', detailImages: [] };
+                newProduct.value = { name: '', category: categories.value[0]?.name || '', price: null, original_price: null, description: '', image: '', detailImages: [], sale_ends_at: '' };
             };
             const startEditProduct = (p) => { editingProductId.value = p.id; editProductForm.value = { ...p, detailImages: p.detailImages || [] }; };
             const uploadEditProductImage = async (event, type) => {
@@ -494,7 +504,8 @@
                     name: editProductForm.value.name, category: editProductForm.value.category,
                     price: editProductForm.value.price, original_price: editProductForm.value.original_price || null,
                     description: editProductForm.value.description,
-                    image: editProductForm.value.image, detail_images: editProductForm.value.detailImages || []
+                    image: editProductForm.value.image, detail_images: editProductForm.value.detailImages || [],
+                    sale_ends_at: editProductForm.value.sale_ends_at || null
                 }).eq('id', editingProductId.value);
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadAll(); alert('수정 완료'); editingProductId.value = null;
