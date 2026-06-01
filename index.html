@@ -162,6 +162,21 @@
                                 <button @click="addToCart" class="py-4 bg-[#EFE9DC] hover:bg-[#E2D9C8] text-[#5C5245] text-xs font-bold rounded-xl tracking-wider transition">🛒 장바구니 담기</button>
                                 <button @click="proceedToCheckout('direct')" class="py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">💳 즉시 결제하기</button>
                             </div>
+                            <!-- 토스페이먼츠 안전결제 뱃지 -->
+                            <div v-if="!hasPurchased(activeProduct.id)" class="flex items-center gap-3 px-3 py-2.5 border border-[#E8EEF8] rounded-xl bg-[#F5F8FF]">
+                                <div class="w-8 h-8 bg-[#EEF4FF] rounded-lg flex items-center justify-center shrink-0">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0064FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        <path d="M9 12l2 2 4-4"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-[11px] font-bold text-gray-700">안전한 결제</p>
+                                    <p class="text-[10px] text-gray-400">
+                                        <span style="color:#0064FF;font-weight:700;">toss</span><span style="color:#0064FF;">payments</span> PG사 보안 결제 시스템
+                                    </p>
+                                </div>
+                            </div>
                             <div v-if="hasPurchased(activeProduct.id)">
                                 <button @click="goToEbook(activeProduct)" class="w-full py-4 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-wider shadow-md transition">📖 전자책 다운받기</button>
                             </div>
