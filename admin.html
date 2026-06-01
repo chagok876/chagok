@@ -171,8 +171,9 @@
                     <input type="file" @change="e => uploadFileStream(e, 'product_main')" accept="image/*" class="w-full text-[10px] pt-1">
                 </div>
                 <div class="space-y-1 bg-white p-3 rounded-xl border border-amber-200">
-                    <label class="block font-bold text-[11px] text-amber-800">■ 상세 이미지 (다중)</label>
+                    <label class="block font-bold text-[11px] text-amber-800">■ 상세 이미지 (최대 5장)</label>
                     <input type="file" @change="e => uploadFileStream(e, 'product_detail')" accept="image/*" multiple class="w-full text-[10px] pt-1">
+                    <p class="text-[9px] text-amber-600">* 최대 5장까지 업로드 가능합니다</p>
                 </div>
                 <button @click="addProduct" class="w-full py-3 bg-[#5C5245] text-white font-bold rounded-xl hover:bg-black transition mt-2">상품 등록</button>
             </div>
@@ -219,7 +220,7 @@
                             </div>
                             <div class="bg-white p-2 rounded border border-amber-200 space-y-1">
                                 <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (다중)</label>
-                                <div v-if="editProductForm.detailImages && editProductForm.detailImages.length > 0" class="flex gap-1 flex-wrap mb-1">
+                                <label class="block text-[10px] font-bold text-amber-700">■ 상세 이미지 교체 (최대 5장)</label>
                                     <img v-for="(img, i) in editProductForm.detailImages" :key="i" :src="img" class="w-12 h-12 object-cover rounded border">
                                 </div>
                                 <input type="file" @change="e => uploadEditProductImage(e, 'detail')" accept="image/*" multiple class="w-full text-[10px]">
@@ -429,7 +430,9 @@
                     newProduct.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
                 } else if (targetType === 'product_detail') {
                     newProduct.value.detailImages = [];
-                    for (let i = 0; i < files.length; i++) {
+                    const maxFiles = Math.min(files.length, 5);
+                    if (files.length > 5) alert('최대 5장까지만 업로드됩니다.');
+                    for (let i = 0; i < maxFiles; i++) {
                         const file = files[i];
                         const path = `images/${Date.now()}_detail_${i}.${file.name.split('.').pop()}`;
                         const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
@@ -462,7 +465,9 @@
                     editProductForm.value.image = sb.storage.from('ebooks').getPublicUrl(path).data.publicUrl;
                 } else if (type === 'detail') {
                     editProductForm.value.detailImages = [];
-                    for (let i = 0; i < files.length; i++) {
+                    const maxFiles = Math.min(files.length, 5);
+                    if (files.length > 5) alert('최대 5장까지만 업로드됩니다.');
+                    for (let i = 0; i < maxFiles; i++) {
                         const file = files[i];
                         const path = `images/${Date.now()}_edit_detail_${i}.${file.name.split('.').pop()}`;
                         const { error } = await sb.storage.from('ebooks').upload(path, file, { upsert: true });
