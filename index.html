@@ -241,9 +241,17 @@
                     </div>
                 </div>
                 <div class="bg-white p-6 rounded-2xl border border-[#F0EAE0] h-fit space-y-4 text-xs">
+                    <div v-if="cart.length >= 2" class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center space-y-1">
+                        <p class="text-[11px] font-black text-amber-800">🏷️ 번들 할인 적용!</p>
+                        <p class="text-[10px] text-amber-600">2개 이상 구매 시 10% 추가 할인</p>
+                        <div class="flex justify-between text-[11px] pt-1">
+                            <span class="text-gray-400 line-through">{{ formatPrice(cartTotalPrice) }}원</span>
+                            <span class="font-black text-amber-700">{{ formatPrice(bundleDiscountedPrice) }}원</span>
+                        </div>
+                    </div>
                     <div class="border-t pt-3 flex justify-between font-black text-base text-[#5C5245]">
                         <span>최종 결제 금액</span>
-                        <span>{{ formatPrice(cartTotalPrice) }}원</span>
+                        <span>{{ formatPrice(cart.length >= 2 ? bundleDiscountedPrice : cartTotalPrice) }}원</span>
                     </div>
                     <button @click="proceedToCheckout('cart')" class="w-full py-3.5 bg-[#5C5245] hover:bg-black text-white text-xs font-bold rounded-xl tracking-widest transition">주문 결제 진행하기</button>
                 </div>
@@ -919,6 +927,7 @@
             });
 
             const cartTotalPrice = computed(() => cart.value.reduce((a, i) => a + i.singleTotalPrice, 0));
+            const bundleDiscountedPrice = computed(() => Math.floor(cartTotalPrice.value * 0.9));
 
             // 공개 쿠폰 중 최대 할인 쿠폰
             const bestPublicCoupon = computed(() => {
@@ -995,14 +1004,14 @@
                 await sb.from('coupons').insert({
                     code: couponCode,
                     discount_type: 'percent',
-                    discount_value: 10,
+                    discount_value: 20,
                     max_uses: 1,
                     used_count: 0,
                     expires_at: expiresAt.toISOString(),
                     user_id: newUserId
                 });
                 await loadAll();
-                alert(`🎉 회원가입이 완료되었습니다!\n\n🎁 웰컴 쿠폰이 발급되었습니다!\n코드: ${couponCode}\n10% 할인 · 3일 유효\n\n상품 상세페이지에서 쿠폰을 선택하여 사용하세요!`);
+                alert(`🎉 회원가입이 완료되었습니다!\n\n🎁 웰컴 쿠폰이 발급되었습니다!\n코드: ${couponCode}\n20% 할인 · 3일 유효\n\n상품 상세페이지에서 쿠폰을 선택하여 사용하세요!`);
             };
 
             const handleLogin = async () => {
@@ -1215,7 +1224,27 @@
                 if (error) { alert('오류: ' + error.message); return; }
                 await loadProductReviews(activeProduct.value.id);
                 newReview.value = { rating: 5, content: '' };
-                alert('✅ 후기가 등록되었습니다!');
+                // 후기 작성 시 20% 할인 쿠폰 자동 발급
+                const reviewCouponCode = 'REVIEW' + Math.random().toString(36).substring(2, 7).toUpperCase();
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+                await sb.from('coupons').insert({
+                    code: reviewCouponCode,
+                    discount_type: 'percent',
+                    discount_value: 20,
+                    max_uses: 1,
+                    used_count: 0,
+                    expires_at: expiresAt.toISOString(),
+                    user_id: userSession.value.id
+                });
+                await loadAll();
+                alert(`✅ 후기가 등록되었습니다!
+
+🎁 감사 쿠폰이 발급되었습니다!
+코드: ${reviewCouponCode}
+20% 할인 · 7일 유효
+
+상품 상세페이지 쿠폰 선택에서 사용하세요!`);
             };
 
             // ── 결제 ──────────────────────────────────────────────
@@ -1242,8 +1271,9 @@
                     productIds = [activeProduct.value.id];
                 } else {
                     if (cart.value.length === 0) return;
-                    originalAmount = cartTotalPrice.value;
+                    originalAmount = cart.value.length >= 2 ? bundleDiscountedPrice.value : cartTotalPrice.value;
                     checkoutSummary.value.orderName = cart.value.length === 1 ? cart.value[0].product.name : `${cart.value[0].product.name} 외 ${cart.value.length - 1}건`;
+                    if (cart.value.length >= 2) checkoutSummary.value.orderName += ' (번들 10% 할인)';
                     productIds = cart.value.map(item => item.product.id);
                 }
                 // 쿠폰 할인 적용
@@ -1577,7 +1607,7 @@
                 products, notices, newProduct, editingProductId, editProductForm, newNotice,
                 cartTotalPrice, categories, newCategoryName, editingCategoryId, editCategoryNameInput,
                 myPurchases, completedProducts,
-                visibleCategories, filteredProducts, filteredNotices, bestPublicCoupon,
+                visibleCategories, filteredProducts, filteredNotices, bestPublicCoupon, bundleDiscountedPrice,
                 navigateTo, triggerSearch, goToDetailView, formatPrice, calcDiscountedPrice, goToEbook, hasCategoryAccess, purchasedCategories, accessibleNotices, productReviews, newReview, submitReview,
                 openLoginModal, closeLoginModal, isPrivacyOpen, isTermsOpen, isRefundOpen, isMypageOpen, deleteMyAccount, deletePasswordInput, agreePrivacy, agreeTerms, handleRegister, handleLogin, logoutUser, kickUser, handleGoogleLogin,
                 addToCart, removeFromCart, hasPurchased, downloadEbook,
