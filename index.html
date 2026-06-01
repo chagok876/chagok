@@ -68,7 +68,7 @@
                 <div v-for="product in filteredProducts" :key="product.id" @click="goToDetailView(product)"
                      class="bg-white p-4 rounded-xl border border-[#F0EAE0] flex flex-col justify-between shadow-xs cursor-pointer hover:translate-y-[-2px] transition-all group">
                     <div>
-                        <div class="w-full h-40 sm:h-64 bg-[#FAF4EA] rounded-lg mb-3 flex items-center justify-center text-xs text-gray-400 overflow-hidden relative">
+                        <div class="w-full aspect-square bg-[#FAF4EA] rounded-lg mb-3 flex items-center justify-center text-xs text-gray-400 overflow-hidden relative">
                             <img v-if="product.image" :src="product.image" class="w-full h-full object-cover">
                             <span v-else>[ 상품 이미지 ]</span>
                         </div>
@@ -76,26 +76,7 @@
                         <h3 class="text-sm font-bold mt-1 text-gray-800 group-hover:text-[#5C5245] transition-colors">{{ product.name }}</h3>
                     </div>
                     <div class="mt-4 pt-3 border-t border-[#FAF4EA] flex justify-between items-center">
-                        <div v-if="availableCoupons.length > 0">
-    <p class="text-xs text-gray-400 line-through">
-        {{ formatPrice(product.price) }}원
-    </p>
-
-    <p class="font-black text-red-600">
-        {{ formatPrice(
-            calcDiscountedPrice(
-                product.price,
-                availableCoupons[0]
-            )
-        ) }}원
-    </p>
-</div>
-
-<div v-else>
-    <p class="font-black text-[#5C5245]">
-        {{ formatPrice(product.price) }}원
-    </p>
-</div>
+                        <span class="font-bold text-sm text-[#5C5245]">{{ formatPrice(product.price) }}원</span>
                         <span class="text-[11px] text-gray-400 group-hover:text-black font-medium">자세히 보기 ➔</span>
                     </div>
                 </div>
@@ -122,25 +103,7 @@
                             <div>
                                 <span class="text-xs uppercase tracking-widest text-amber-800 bg-amber-50 px-2.5 py-1 rounded font-black">{{ activeProduct.category }}</span>
                                 <h2 class="text-2xl font-black text-gray-900 mt-2">{{ activeProduct.name }}</h2>
-                                <div class="mt-2">
-    <div v-if="detailAppliedCoupon">
-        <p class="text-sm text-gray-400 line-through">
-            {{ formatPrice(activeProduct.price) }}원
-        </p>
-        <p class="text-2xl font-black text-red-600">
-            {{ formatPrice(calcDiscountedPrice(activeProduct.price, detailAppliedCoupon)) }}원
-        </p>
-        <p class="text-[11px] text-green-600 font-bold">
-            {{ detailAppliedCoupon.discount_type === 'percent'
-                ? detailAppliedCoupon.discount_value + '% 할인'
-                : formatPrice(detailAppliedCoupon.discount_value) + '원 할인' }}
-        </p>
-    </div>
-
-    <div v-else class="text-xl font-bold text-[#5C5245]">
-        판매가: {{ formatPrice(activeProduct.price) }}원
-    </div>
-</div>
+                                <div class="text-xl font-bold text-[#5C5245] mt-2">판매가: {{ formatPrice(activeProduct.price) }}원</div>
                             </div>
                         </div>
                         <div class="mt-8 pt-6 border-t border-gray-200 space-y-4">
@@ -155,19 +118,20 @@
                                     <span v-else class="text-xl font-black text-[#5C5245]">{{ formatPrice(activeProduct.price) }}원</span>
                                 </div>
                             </div>
-                            <!-- 쿠폰 표시 (미구매 상품만) -->
+                            <!-- 쿠폰 선택 (미구매 상품만) -->
                             <div v-if="!hasPurchased(activeProduct.id) && availableCoupons.length > 0" class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
-                                <p class="text-[11px] font-black text-amber-800">🎁 사용 가능한 쿠폰</p>
-                                <div v-for="c in availableCoupons" :key="c.id" class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
-                                    <div>
-                                        <p class="text-xs font-black text-gray-800 tracking-wider">{{ c.code }}</p>
-                                        <p class="text-[10px] text-gray-500">{{ c.discount_type === 'percent' ? c.discount_value + '% 할인' : formatPrice(c.discount_value) + '원 할인' }}</p>
-                                    </div>
-                                    <button @click="applyDetailCoupon(c)" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition">적용</button>
-                                </div>
-                                <div v-if="detailAppliedCoupon" class="flex items-center justify-between text-[11px] pt-1">
-                                    <span class="text-green-600 font-bold">✅ {{ detailAppliedCoupon.code }} 적용됨</span>
-                                    <button @click="detailAppliedCoupon = null" class="text-red-400 hover:underline">취소</button>
+                                <p class="text-[11px] font-black text-amber-800">🎁 보유 쿠폰 선택</p>
+                                <select @change="e => applyDetailCoupon(availableCoupons.find(c => c.code === e.target.value))"
+                                    class="w-full p-2 border rounded-xl bg-white text-xs focus:outline-none focus:border-amber-400">
+                                    <option value="">쿠폰을 선택하세요</option>
+                                    <option v-for="c in availableCoupons" :key="c.id" :value="c.code">
+                                        {{ c.code }} — {{ c.discount_type === 'percent' ? c.discount_value + '% 할인' : formatPrice(c.discount_value) + '원 할인' }}
+                                        ({{ c.expires_at ? new Date(c.expires_at).toLocaleDateString('ko-KR') + ' 까지' : '기간 무제한' }})
+                                    </option>
+                                </select>
+                                <div v-if="detailAppliedCoupon" class="flex items-center justify-between text-[11px]">
+                                    <span class="text-green-600 font-bold">✅ {{ detailAppliedCoupon.code }} 적용 중</span>
+                                    <button @click="detailAppliedCoupon = null" class="text-red-400 hover:underline text-[10px]">취소</button>
                                 </div>
                             </div>
 
@@ -953,21 +917,7 @@
             // ── 네비게이션 ────────────────────────────────────────
             const navigateTo = (tab) => { currentTab.value = tab; };
             const triggerSearch = () => { if (currentTab.value !== 'shop') navigateTo('shop'); };
-            const goToDetailView = (product) => {
-    activeProduct.value = product;
-
-    // 상품 이동 시 쿠폰 초기화
-    detailAppliedCoupon.value = null;
-
-    currentTab.value = 'product_detail';
-
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-
-    loadProductReviews(product.id);
-};
+            const goToDetailView = (product) => { activeProduct.value = product; currentTab.value = 'product_detail'; window.scrollTo({ top: 0, behavior: 'smooth' }); loadProductReviews(product.id); };
             const formatPrice = (v) => v ? v.toLocaleString() : 0;
 
             const calcDiscountedPrice = (price, coupon) => {
@@ -991,11 +941,25 @@
                 if (existing) { alert('이미 존재하는 아이디입니다.'); return; }
                 const { error } = await sb.from('users').insert({ username: uid, password: upw, name: uid });
                 if (error) { alert('오류: ' + error.message); return; }
+                const { data: newUserData } = await sb.from('users').select('*').eq('username', uid).single();
                 allRegisteredUsers.value = (await sb.from('users').select('*')).data || [];
-                userSession.value = { isLoggedIn: true, name: uid, id: null };
+                userSession.value = { isLoggedIn: true, name: uid, id: newUserData?.id || null };
                 localStorage.setItem('chagok_session', JSON.stringify(userSession.value));
                 isLoginModalOpen.value = false;
-                alert('🎉 회원가입이 완료되었습니다!');
+                // 웰컴 쿠폰 자동 생성 (3일 유효, 10% 할인)
+                const couponCode = 'WELCOME' + Math.random().toString(36).substring(2,7).toUpperCase();
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 3);
+                await sb.from('coupons').insert({
+                    code: couponCode,
+                    discount_type: 'percent',
+                    discount_value: 10,
+                    max_uses: 1,
+                    used_count: 0,
+                    expires_at: expiresAt.toISOString()
+                });
+                await loadAll();
+                alert(`🎉 회원가입이 완료되었습니다!\n\n🎁 웰컴 쿠폰이 발급되었습니다!\n코드: ${couponCode}\n10% 할인 · 3일 유효`);
             };
 
             const handleLogin = async () => {
